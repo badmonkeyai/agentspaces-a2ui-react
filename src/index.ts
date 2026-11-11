@@ -6,6 +6,7 @@
 // open custom elements it wraps (the split and the tree), with the chat's
 // thread and the files' helpers a page shares with them.
 export { Surfaces, type SurfacesProps, type SurfaceActionEvent, type Envelope } from './renderer/surfaces';
+export { appendEnvelope, SUPERSEDED } from './renderer/envelopes';
 export { catalogs, declares, registerComponents, registerAlias, BASIC_ID } from './renderer/catalogs';
 export { define, useData, useRows, fmt, uploaders, fileSources, type Ctx, type ComponentProps, type Implementation, type UploadOptions, type UploadAnswer, type FileRef, type FileSource } from './renderer/implementation';
 export { LookAndFeelProvider, useLook } from './look/provider';

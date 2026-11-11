@@ -61,6 +61,7 @@ npx esbuild page.js --bundle --format=esm --splitting --outdir=out --external:ma
 ## What it is
 
 - `Surfaces`: the renderer of a list of envelopes over the A2UI basic catalog, `agentspaces-viz`, and `agentspaces-widgets`; `registerComponents` and `registerAlias` let a host add its own catalogs.
+- `appendEnvelope(log, envelope)`: the log a page keeps for `Surfaces`, with a data write replacing the earlier writes it covers (`SUPERSEDED` holds their slots), so a page open for hours keeps what it draws.
 - The frame of a page: `TitleBar`, `Menu` and `Split` (the WAI-ARIA Menu Button, Menu and Window Splitter patterns), `Pages` for a Publish's `navigation` and `layout`, and `CommandPalette` on Ctrl or Cmd and K.
 - The application components: `Chat` (progress, safe Markdown answers, attachment and citation chips, retry, stop, feedback), `FileTree` (the WAI-ARIA Tree View keyboard, badges, upload, a context menu) and `FilePreview` (text, Markdown, CSV, PNG, JPEG, and PDF in a sandboxed frame).
 - `<agentspaces-split>` and `<agentspaces-tree>` in `./elements`, the look and feel as CSS variables, and `Gallery`, every golden surface with its code.

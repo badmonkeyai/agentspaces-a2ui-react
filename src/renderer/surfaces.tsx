@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { A2uiSurface, MarkdownComponentContext, type ReactCatalogComponent } from '@a2ui/react/v0_9';
 import { MessageProcessor, type SurfaceModel, type ComponentApi } from '@a2ui/web_core/v0_9';
 import { catalogs, declares } from './catalogs';
+import { SUPERSEDED } from './envelopes';
 import { Markdown } from '../viz/Markdown';
 import { LookAndFeelProvider } from '../look/provider';
 import type { LookAndFeel } from '../generated/look';
@@ -18,7 +19,7 @@ export interface SurfaceActionEvent { name: string; surfaceId: string; sourceCom
 export type Envelope = Record<string, unknown>;
 
 export interface SurfacesProps {
-  /** The envelopes so far, oldest first; the component processes those it has not seen. */
+  /** The envelopes so far, oldest first; the component processes those it has not seen and passes over SUPERSEDED. */
   envelopes: readonly Envelope[];
   /** Receives every action a person takes on a surface. */
   onAction?: (action: SurfaceActionEvent) => void;
@@ -70,6 +71,7 @@ export function Surfaces({ envelopes, onAction, onProblem, look, mode = 'light',
     seen.current = envelopes.length;
     if (fresh.length) {
       for (const e of fresh) {
+        if (e === SUPERSEDED) continue;   // a data write a later one replaced (appendEnvelope)
         try { processor.processMessages(admit(e) as never); } catch (err) { onProblemRef.current?.(String((err as Error).message ?? err)); }
       }
       setSurfaces([...processor.getSurfaces().values()]);

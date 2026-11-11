@@ -1,0 +1,27 @@
+{
+  "inputs": {
+    "agentspaces-viz": {
+      "path": "agentspaces-a2ui/src/main/resources/catalogs/agentspaces-viz/catalog.json",
+      "sha256": "7bbeac35510332d1285c0978588071e20ecbb80434af2b266da47e53e3894443"
+    },
+    "agentspaces-widgets": {
+      "path": "agentspaces-a2ui/src/main/resources/catalogs/agentspaces-widgets/catalog.json",
+      "sha256": "7e67618061fb17c5cd489016133703eb243bf94c1b5d40912e4466896c86e157"
+    },
+    "goldens": {
+      "path": "agentspaces-a2ui/src/test/resources/golden/surfaces.json",
+      "sha256": "450b563694b743ec235c71d9d5198400c4bf84d50817837fa5c5c999057abbeb"
+    },
+    "look": {
+      "path": "agentspaces-a2ui/src/main/resources/catalogs/look-and-feel.schema.json",
+      "sha256": "efc2ad74192095d3cbc3b2eb808492d701ed441cd4d6ec0f5dc2fc6c7c920ca2"
+    }
+  },
+  "outputs": {
+    "catalogs.ts": "b5397b4b8697bae0589b97b22cbbeb9befb60946cea740bf8c3993cb4cb1e0c8",
+    "props.ts": "7f882308ba1c68bf3baa78d5583e55669d236222c45f5ecb146c29abe790d392",
+    "registry.ts": "2226f7f4192f6d63ae2a04ecb5b45379c05ed2e1829a3c7db407c46b68625d6a",
+    "goldens.ts": "2cccf647388d4871631b86fcd8c574dab3a77698f6f5a218eb02858fe9601b52",
+    "look.ts": "91b2bd8b5d2ce632a5b2c2a9879f2116fb6892c85ec65a461ac815f6e4cec87d"
+  }
+}

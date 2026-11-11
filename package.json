@@ -1,0 +1,84 @@
+{
+  "name": "@agentspaces/a2ui-react",
+  "version": "0.6.0",
+  "description": "The open React renderer of the AgentSpaces A2UI catalogs agentspaces-viz and agentspaces-widgets, with the open custom elements it wraps (the panel split), the look and feel as CSS variables, and the dataviz method for every chart",
+  "license": "Apache-2.0",
+  "author": "Bad Monkey, Inc. <oss@badmonkey.ai> (https://badmonkey.ai)",
+  "homepage": "https://github.com/badmonkeyai/agentspaces-a2ui-react#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/badmonkeyai/agentspaces-a2ui-react.git"
+  },
+  "bugs": {
+    "url": "https://github.com/badmonkeyai/agentspaces-a2ui-react/issues"
+  },
+  "keywords": ["a2ui", "agentspaces", "react", "renderer", "web-components", "custom-elements", "dataviz", "charts", "maps", "agents", "generative-ui"],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/types/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/src/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./elements": {
+      "types": "./dist/types/src/elements/index.d.ts",
+      "default": "./dist/elements.js"
+    },
+    "./style.css": "./dist/a2ui-react.css",
+    "./package.json": "./package.json"
+  },
+  "files": ["dist", "!dist/axe.json", "!dist/size.json", "src", "README.md", "CHANGELOG.md", "LICENSE", "NOTICE"],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "generate": "node tools/generate.mjs",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "build": "node tools/generate.mjs --check && node tools/import-check.mjs && tsc -p tsconfig.json && node build.mjs",
+    "test": "npm run build && node --test test/*.test.mjs",
+    "axe": "node tools/gallery-axe.mjs",
+    "lint": "node tools/docs-lint.mjs .",
+    "prepublishOnly": "npm run clean && npm test"
+  },
+  "peerDependencies": {
+    "@a2ui/react": "0.15.0",
+    "@a2ui/web_core": "0.15.0",
+    "markdown-it": "^14.2.0",
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0",
+    "zod": "^3.25.76",
+    "@deck.gl/aggregation-layers": "^9.4.1",
+    "@deck.gl/core": "^9.4.1",
+    "@deck.gl/layers": "^9.4.1",
+    "@deck.gl/mapbox": "^9.4.1",
+    "maplibre-gl": "^6.16.0"
+  },
+  "peerDependenciesMeta": {
+    "@deck.gl/aggregation-layers": { "optional": true },
+    "@deck.gl/core": { "optional": true },
+    "@deck.gl/layers": { "optional": true },
+    "@deck.gl/mapbox": { "optional": true },
+    "maplibre-gl": { "optional": true }
+  },
+  "devDependencies": {
+    "@a2ui/react": "0.15.0",
+    "@a2ui/web_core": "0.15.0",
+    "@deck.gl/aggregation-layers": "^9.4.1",
+    "@deck.gl/core": "^9.4.1",
+    "@deck.gl/layers": "^9.4.1",
+    "@deck.gl/mapbox": "^9.4.1",
+    "@types/markdown-it": "^14.1.2",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "axe-core": "^4.14.0",
+    "esbuild": "^0.28.2",
+    "happy-dom": "^21.0.4",
+    "maplibre-gl": "^6.16.0",
+    "markdown-it": "^14.2.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "typescript": "^5.9.0",
+    "zod": "^3.25.76"
+  }
+}

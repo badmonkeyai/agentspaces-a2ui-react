@@ -1,0 +1,72 @@
+# Copyright 2026 Bad Monkey, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+# Least privilege for the default GITHUB_TOKEN: the build only reads.
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: agentspaces-a2ui-react
+    steps:
+      # The generator reads the catalogs, the golden surfaces and the look-and-feel schema from
+      # ../agentspaces-a2ui, so the job checks both repositories out side by side, as a clone of
+      # the workspace has them.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          path: agentspaces-a2ui-react
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: badmonkeyai/agentspaces-a2ui
+          ref: main
+          path: agentspaces-a2ui
+      - name: Docs lint
+        # The README's shape and the docs folder's index; the same script runs in
+        # every public AgentSpaces repository.
+        run: node tools/docs-lint.mjs .
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: agentspaces-a2ui-react/package-lock.json
+      - name: Install
+        run: npm ci
+      - name: Build and test
+        # The generated files against the catalogs (--check), the import check, the types,
+        # the bundles, and the tests: conformance of every golden surface, the keyboard
+        # tests, the safe Markdown and file preview, and the README's quick start.
+        run: npm test
+      - name: Accessibility (axe-core over the gallery, light and dark)
+        # The script skips when it finds no Chrome, so the step checks for it first. Ubuntu
+        # 24.04 limits unprivileged user namespaces, which Chrome's sandbox uses.
+        env:
+          CHROME: /usr/bin/google-chrome
+        run: |
+          test -x "$CHROME" || { echo "no Chrome at $CHROME"; exit 1; }
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+          npm run axe
+      - name: What the package ships
+        # Lists the tarball's files without publishing anything.
+        run: npm pack --dry-run

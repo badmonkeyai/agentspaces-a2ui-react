@@ -1,0 +1,62 @@
+# @agentspaces/a2ui-react repository.
+#
+# What must be COMMITTED and therefore is deliberately NOT listed here:
+#   package-lock.json   npm ci in CI relies on it
+#   src/generated/      tools/generate.mjs writes it from agentspaces-a2ui's catalogs, and the build
+#                       checks it against them (--check), so the repository tracks it
+#   .github/            the CI workflows
+#   tools/              the generator, the import check, the axe run, and the docs lint
+
+# Dependencies
+node_modules/
+.npm/
+.pnpm-store/
+.yarn/
+
+# Build output (build.mjs and tsc write dist/; npm publishes it from a fresh build)
+dist/
+*.tsbuildinfo
+*.tgz
+
+# Test and coverage output
+coverage/
+.nyc_output/
+.eslintcache
+
+# Logs, including the platform gate's target-npm-test.log
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# IDEs and editors
+.vscode/
+.idea/
+*.iml
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Scratch
+/tmp/
+.release-dashboard/
+
+# Keys and secrets never belong in a repository
+.npmrc
+*.pem
+*.key
+*.p8
+*.p12
+*.pfx
+*.jks
+*.jwk
+*.jwks
+*.asc
+*.gpg
+.env
+.env.*

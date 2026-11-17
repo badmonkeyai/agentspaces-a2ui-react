@@ -7,7 +7,7 @@
 // beside their keys (the window pattern), a legend that hides a layer, a table view of the rows (the dataviz rule),
 // a highlight and a follow from the data model. Where the map cannot draw (no WebGL, a test), the rows are listed
 // so the page still says what is where, and the alert boxes still work.
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { define, fmt, useData, type Ctx } from '../../renderer/implementation';
 import { useLook } from '../../look/provider';
 import type { MapProps } from '../../generated/props';
@@ -120,15 +120,19 @@ const SKIP = new Set(['polygon', 'geometry', 'track', 'findings']);
 
 /** The rows of one layer as a table: the fields of its first rows as columns, at most two hundred rows. */
 function LayerTable({ layer, onRow, action }: { layer: MapLayer; onRow?: (row: Row) => void; action?: string }) {
+  // the layer's name labels its table and is no heading: the map sits at any depth of a page's outline, and a heading
+  // here would skip levels under the page's own (axe's heading-order)
+  const titleId = useId();
   if (layer.kind === 'geojson') return <p className="bma-muted bma-small">{legendName(layer)}: a GeoJSON layer{layer.geojson ? '' : ' (no data yet)'}.</p>;
   const columns: string[] = [];
   layer.rows.slice(0, 50).forEach(r => Object.keys(r).forEach(k => { if (!SKIP.has(k) && !columns.includes(k) && typeof r[k] !== 'object') columns.push(k); }));
   return (
     <div className="layer-table">
-      <h4><span className="swatch" style={{ background: layer.color }} />{legendName(layer)} <span className="bma-muted bma-small">{layer.kind}, {layer.rows.length} row{layer.rows.length === 1 ? '' : 's'}</span></h4>
+      <p className="layer-title" id={titleId}><span className="swatch" style={{ background: layer.color }} />{legendName(layer)} <span className="bma-muted bma-small">{layer.kind}, {layer.rows.length} row{layer.rows.length === 1 ? '' : 's'}</span></p>
       {layer.rows.length ? (
-        <table className="bma-table">
-          <thead><tr>{columns.map(c => <th key={c}>{c}</th>)}{onRow ? <th /> : null}</tr></thead>
+        <table className="bma-table" aria-labelledby={titleId}>
+          {/* the action column has no title a person sees; its header still names it for a screen reader */}
+          <thead><tr>{columns.map(c => <th key={c}>{c}</th>)}{onRow ? <th><span className="as-visually-hidden">Action</span></th> : null}</tr></thead>
           <tbody>{layer.rows.slice(0, 200).map((r, i) => <tr key={i}>{columns.map(c => <td key={c}>{fmt(r[c])}</td>)}{onRow ? <td><button type="button" className="bma-btn" onClick={() => onRow(r)}>{action}</button></td> : null}</tr>)}</tbody>
         </table>
       ) : <p className="bma-muted bma-small">No row yet.</p>}

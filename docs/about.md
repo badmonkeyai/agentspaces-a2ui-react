@@ -18,8 +18,39 @@ A host adds its own catalog with `registerComponents(catalogId, implementations)
 - `TitleBar` draws the app's name and status from `WorkingOn` rows in the A2A task words. The first `TitleBar` on a page claims the page's bar through `FrameContext`, so a page that provides `useFrameProvider(tools)` draws one bar.
 - `Menu` follows the WAI-ARIA Menu Button and Menu patterns. `MenuView` is the popup alone, for a component with a menu of its own.
 - `Split` wraps `<agentspaces-split>`, the WAI-ARIA Window Splitter. The arrows move a separator by 5 percent (1 with Shift), Home and End go to the limits, and Enter collapses a pane to its rail.
-- `Pages` draws a Publish's `navigation` as tabs or a rail, with the current page in the URL fragment, or its `layout` as whole surfaces in the panes of a split.
+- `Pages` draws a Publish's `navigation` as tabs or a rail, with the current page in the URL fragment, or its `layout` as whole surfaces in the panes of a split. A conversation layout's `banner` draws as one line of plain text at the very top of the page and again at its foot; a screen reader reads it once, at the top, as a note.
 - `CommandPalette` offers the title bars' actions and the menus' items on Ctrl or Cmd and K.
+
+## Follow-ups, thumbs and a lit path
+
+- **Follow-ups.** A `Chat` whose `suggestions` is a binding draws the rows the agent writes there (`{text, label, line}` or a string). A chip with a `line` draws only while that line is the newest line of the thread, so it hides when the person sends a line and the next answer brings its own; a row with no `line` always draws. At most 8 chips draw, and a tap sends the row's whole `text`, whatever the chip shows.
+- **Thumbs.** The `feedback` control is a thumbs up "Helpful" and a thumbs down "Not helpful", each with `aria-pressed`. The chat keeps the choice per line while the page is open, and sends `chat.feedback` again only when the person changes it.
+- **A lit path.** Rows with `lit: true` light a path: in `Graph` exactly the lit edges (and those a person hovers or focuses), in `GraphView` the lit nodes as selected and the lit edges in the accent. A lit row's accessible text adds ", on the path".
+- **A row button's words.** A `DataTable` row button reads `rowActionLabel` and is named with the row's first column.
+- **Text into an action.** A basic `TextField` bound to a path and a `Button` whose action context reads the same path send what the person typed with the press, so a page needs no form for a one-field box.
+
+## Actions and agent functions
+
+- **Actions.** `Surfaces` hands every action a person takes to `onAction`, in A2UI 1.0's shape. The host posts it back to the agent that draws the surface.
+- **Agent functions.** An action may call one of the drawing agent's functions: 1.0's `{"functionCall": {"@call": name, "args": {...}}}`, with a name the catalogs do not run and no `catalogId`.
+  - On a press, the renderer resolves the arguments against the data model. It hands 1.0's `callAgentFunction` (`{version, callAgentFunction: {surfaceId, functionCallId, callFunction}}`) to `onFunctionCall`, and the host sends it.
+  - The agent's `agentFunctionResponse` arrives among the envelopes. web_core matches it to the call by its `functionCallId`. An answer to no call of this page settles nothing.
+  - `onFunctionResult` hears what came of each call: `{surfaceId, functionCallId, function, value}`, or `error` with a `code` and a `message`.
+  - A call with no answer within `functionTimeoutMs` (`AGENT_FUNCTION_TIMEOUT_MS`, 30 s) ends with the code `TIMEOUT`, and `onProblem` reports it.
+  - A call the host does not send ends at once with `SEND_FAILED`: the host returns `false` or rejects, or the page has no `onFunctionCall`.
+  - A component calls a function itself with `ctx.call(fn, args)`, which resolves with the answer. A host may take only a function some component action of the surface names as a `functionCall`, so the agent says which of its functions a page may call. A call to any other is refused before it reaches the agent, and the component sees `SEND_FAILED`. So a surface whose custom component calls `tideAt` also draws an action that names `tideAt`, such as a button.
+  - The renderer keeps its processor through React's StrictMode, which runs each effect's cleanup and setup twice in a development build. Calls still waiting when `Surfaces` unmounts end with `CANCELLED`.
+- **Why a call becomes an event inside the renderer.** web_core runs a `functionCall` itself and knows only the catalogs' functions. So `withAgentCalls` rewrites such an action, as its envelope arrives, into an event whose name only this renderer makes. web_core then resolves the event's context on the press as it does for any action.
+
+## What a bound path holds
+
+Visualize, GraphView and the geo components read their rows or features from a path of the data model, and draw one of four states from what the path holds:
+
+- **A list or a table:** the data, or the empty state when it holds none.
+- **Nothing at all:** loading, said in words ("Loading the features…") and marked `aria-busy`. The renderer cannot tell data that has not arrived from data that never will.
+- **Any other value:** an error that names the path ("Unavailable: the features at /ships do not read as a list.").
+
+So a host writes a list for every bound path, an empty one when there is nothing yet, as soon as it knows. A path the host never writes, such as a misspelt one, stays loading for as long as the page is open.
 
 ## View state
 
@@ -29,11 +60,12 @@ Split sizes, collapsed panes, the open menu and the current page stay in the bro
 
 - `tools/generate.mjs --check`: the generated files match the catalogs, and every drawn component has its implementation.
 - `tools/import-check.mjs`: no file imports a platform module.
-- `npm test`: the conformance of every golden surface, the keyboard tests of the split, the menu, the title bar, the palette and the pages, and the quick start.
-- `npm run axe`: axe-core over the gallery in light and dark mode, with no serious or critical finding allowed.
+- `npm test`: the conformance of every golden surface, the keyboard tests of the split, the menu, the title bar, the palette and the pages, agent function calls and their answers, and the quick start.
+- `npm run axe`: axe-core over the gallery in light and dark mode, as drawn and with every menu open, with no finding of any impact allowed.
+- `npm run perf`: the frame-rate probe in Chrome (GEO-Q-20 and GEO-G-03): a GeoMap of 10,000 points and 500 polygons, and a GraphView of 2,000 nodes and 5,000 edges, each panned for several seconds in a 2560 × 1440 window. It needs 30 frames shown per second, and a graph layout under 2 s.
 
 ## The build
 
-`dist/index.js` leaves React, web_core, markdown-it, zod, MapLibre and deck.gl to the page, and loads the map adapter as a chunk of its own. `dist/elements.js` holds the custom elements alone. `dist/gallery.html` is the gallery page.
+`dist/index.js` leaves React, web_core, markdown-it, zod, MapLibre and deck.gl to the page, and loads the map adapter as a chunk of its own, and GraphView's WebGL drawing (past 500 nodes) as another. `dist/elements.js` holds the custom elements alone. `dist/gallery.html` is the gallery page.
 
-A page that bundles this package without MapLibre and deck.gl marks them external and keeps code splitting on (`--splitting --external:maplibre-gl --external:@deck.gl/*` in esbuild), so only the map's chunk names them. Without splitting, a bundler hoists the map's imports into the page's own bundle, and the page fails to load.
+A page that bundles this package without MapLibre and deck.gl marks them external and keeps code splitting on (`--splitting --external:maplibre-gl --external:@deck.gl/*` in esbuild), so only the map's chunk and the graph's name them. Without splitting, a bundler hoists the map's imports into the page's own bundle, and the page fails to load.

@@ -2,6 +2,99 @@
 
 What changed in the open React renderer, newest first.
 
+## Unreleased: 0.7.0
+
+- **Follow-ups, thumbs, a lit path, a row button's words and a marking line** (issues/ISSUE-A2UIFollowUpsAndPathHighlight.md, AF-1 to AF-19). All additive: a page that sends a suggestions list, a graph with no `lit`, a table with no label or a layout with no banner draws as before.
+  - **Bound follow-ups.** A `Chat` whose `suggestions` is `{"@path": ...}` draws the rows an agent writes there: a string, or `{text, label, line}`. A chip with a `line` draws only while that line is the newest line of the thread, so the chips hide the moment the person sends a line and the next answer brings its own; a row with no `line` always draws, so an agent seeds its starters as rows. At most 8 chips draw, a chip is cut at 120 characters (a label at 60) with its full text as its title, and a tap sends the full text, never the cut one or the label. The chat never writes the rows. A list draws as before, under the same caps. `chipsOf`, `suggestionsPath`, `MAX_CHIPS`, `CHIP_TEXT` and `CHIP_LABEL` are exported.
+  - **Thumbs.** The `feedback` control is two icon buttons, thumbs up "Helpful" and thumbs down "Not helpful", in a group, each with `aria-pressed`. The icons are inline SVG in `currentColor`, so a theme colours them and no icon font loads. The chat keeps the choice per line for the page's life, sends nothing on a second press of the same thumb, and sends `chat.feedback` again when the person changes it. The action and its payload are as before; the buttons were "Good" and "Poor".
+  - **A lit path.** Node and edge rows may carry `lit: true`. In `Graph`, once any edge is lit, an edge lights only when it is lit, hovered, or touches the hovered or focused node, so the edges that leave the path stay dark; with no lit edge it lights as before. `GraphView` draws lit nodes in the selected style and lit edges with the accent stroke, on the SVG and the WebGL drawing alike (`nodeOn`, `edgeOn`), and a person's selection adds its own. A lit node's accessible name and a lit edge's text add ", on the path" (in `Graph` as text a screen reader reads and nobody sees; in GraphView's edge title and its table). `graphOf` reads `lit`, the boolean alone.
+  - **A row button's words.** A `DataTable` row button reads `rowActionLabel`, else the action's name, and its accessible name adds the row's first column ("Add the page Claims handbook").
+  - **The banner.** A conversation layout's `banner` draws as one line of plain text, centred, at the very top of the page above the bar and again at its very foot. A screen reader reads it once, at the top, as a note; the foot copy is `aria-hidden`. Empty or absent draws nothing. `bannerOf` and `BANNER_MAX` are exported.
+  - **Text into an action.** A test shows that a basic-catalog `TextField` whose value is bound to a path, and a `Button` whose action context reads that path, dispatch the typed text in the action's context, on a basic, a viz and a widgets surface.
+  - **Goldens.** The conformance test draws the new goldens (a Chat's follow-ups, a Graph's and a GraphView's lit path, a labelled DataTable) and checks that a frame component's four states come first. `npm run axe` finds no violation with them in the gallery.
+
+- **Closer search matches first.** `searchFeatures` ranks the label that is the query first, then a label that starts with it, then one with a word that starts with it, then one that holds it. Among equals the shorter label comes first, so `Northgate` finds the ship "MV Northgate" before the line "MV Northgate bound for Seaforth", and Enter picks the ship.
+- **Docked windows fill their column.** In a geo layout, the docked windows of a side that no one has resized share the stage's height, so a window alone on its side runs top to bottom. The right column stops above a bottom window that reaches under it. A resize marks the window `sized` and keeps its height; `placeDocked` now returns each window's height with its place.
+- **Map labels draw accented names.** The label layers take their characters from the text (`characterSet: 'auto'`), so "Bahía" and "Tiburón" no longer lose a letter.
+
+- **Agent functions** (GEO-V-07). An action may call one of the drawing agent's functions, A2UI 1.0's `callAgentFunction`:
+  - **The press.** An action `{"functionCall": {"@call": name, "args": {...}}}` whose name no catalog runs reaches `Surfaces`' new `onFunctionCall` as 1.0's `callAgentFunction`, with the arguments resolved against the data model. It never reaches `onAction`.
+  - **The answer.** The agent's `agentFunctionResponse` arrives among the envelopes, and web_core matches it to the call by its `functionCallId`. `onFunctionResult` hears the value or the error.
+  - **The time.** A call with no answer within `functionTimeoutMs` (`AGENT_FUNCTION_TIMEOUT_MS`, 30 s) ends with `TIMEOUT`, which `onProblem` reports. A call the host does not send ends at once with `SEND_FAILED`.
+  - **For components.** `ctx.call(fn, args)` makes a call from a component and resolves with its answer. A host may take only a function some component action of the surface names, so a call to any other fails with `SEND_FAILED`. Calls work under React's StrictMode, and a call still waiting when `Surfaces` unmounts ends with `CANCELLED`. The exports `withAgentCalls`, `agentFunctions`, `AgentFunctionCall` and `AgentFunctionResult` are new.
+- **Four states for the geo components** (GEO-Q-31). Visualize, GraphView, GeoMap, FeatureCard, FeatureSearch, Watchbox and LayerMenu each have golden surfaces in four states (full, empty, loading, error), and each draws them so a person tells them apart:
+  - **Loading** is a bound path that holds nothing yet. It says so ("Loading the features…", "Loading the rows…", "Loading the graph…", "Loading incidents…") and is `aria-busy`. A path holding an empty list is empty, as before. The renderer cannot tell data that has not arrived from data that never will, so a host writes a list for every bound path, an empty one when there is nothing yet; a path it never writes, such as a misspelt one, stays loading. [About the renderer](docs/about.md) says so.
+  - **Error** is a value at the path that does not read as a list or a table. It is said in words naming the path ("Unavailable: the features at /ships do not read as a list."), never drawn as a blank or a quiet watch. A map draws its other layers beside it.
+  - **Where it shows:** a GeoMap says the state in its legend; a LayerMenu's trigger carries "Loading" or "Unavailable" as a Menu's does; a FeatureSearch's empty box says it in its placeholder and in full in its description, and over a map where one layer does not read but another draws, its placeholder adds "(some unavailable)" and its border takes the warning colour; a FeatureCard on a selection that has not arrived says "Loading the feature…".
+  - **`featuresState(layers)`** gives the state and its sentence; `featureLayers` marks a layer `pending` or `broken`.
+- **Accessibility (axe): no violation of any impact.** `npm run axe` now fails on any violation, not only a serious or critical one. Its second pass opens every LayerMenu as well as every Menu, and fails when one stays shut, since axe skips a hidden list.
+  - The layer tables of a `Map`'s and a `GeoMap`'s table view are labelled by their layer's name (`aria-labelledby`), which is no longer an `h4`. A map sits at any depth of a page's outline, and the `h4` skipped levels. It looks as it did.
+  - `KeyValue`'s title and a `Notification` group's title are `h3`, one level under a page's section. They look as they did.
+  - The action column of a `DataTable` (a `rowAction`) and of a `Map`'s layer table has a header named "Action" for a screen reader, with no visible text.
+  - **`--bma-color-button-ink`**, a new look variable: the text on a `--bma-color-button` fill. It is the look's ink when the look names a `button`, and the ink on the accent (`accentInk`) when the fill falls back to the accent. A host's button on that fill reads in it; the page's ink on the accent failed contrast.
+- **The closed catalogs** (GEO-V-04). The generator follows a property's `$ref` into its catalog's `$defs`, so `props.ts` types a shared type, such as TitleBar's `title` (`TextOrBinding`), as before. It leaves out 1.0's envelope properties (`id`, `catalogId`, `accessibility`, `metadata`). Each closed component now declares them, and every component carries them.
+- **A2UI 1.0.** The renderer runs on `@a2ui/web_core` 0.15.0's `v1_0` entry, with no v0.9.1 reading kept. It reads 1.0's `{"@path": ...}` bindings, so a TitleBar's bound title, a menu item's check and a FilePreview's file follow the data model.
+- **The agentspaces-geo catalog** (srad/agentspaces-geo.md phase 2). The generator reads `agentspaces-a2ui-geo`'s catalog and its golden surfaces beside agentspaces-a2ui's:
+  - **`GeoMap`** draws GeoFeature layers on the map adapter `Map` uses, with clusters, a selection ring, severity rings, a view kept per app, Home, +, − and north, a legend and a table view.
+  - **The map's keyboard:** with the map focused, the arrows pan, + and − zoom, N and Shift+N step through the shown features in label order and a live region says each, and Enter flies to the selected one. Tab still leaves the map.
+  - **`FeatureCard`, `FeatureSearch` and `LayerMenu`** share the map's state through the data model under `/_geo/<map id>/`.
+  - **Loading.** Their drawings are a chunk the page loads on first use (`loadGeo`); `Surfaces` starts the load when a surface names the catalog.
+  - **What a geo surface draws.** It also draws the viz and widgets components.
+- **The GeoLayout** (srad/agentspaces-geo.md §3.3). `Pages` takes `layout: { kind: geo, map, windows }`:
+  - **The page:** one top bar (the title, the lede, the map's search, each window as a menu item, the page's tools), and the map's surface full screen under it.
+  - **The windows:** each window's surface is a card that drags by its header, resizes from its corner (at least 240 × 160), folds, closes, raises on a click, and docks left, right or bottom (two on a side stack; a drag frees one). Each window's place, size, fold and open state are kept per app.
+  - **The keyboard:** F6 moves between the bar, the map and each open window.
+  - **Narrow pages:** below 900 px the windows are sheets, one at a time.
+  - **The geo components in the layout:** a `FeatureSearch` draws in the bar, and a `GeoMap` opens its selection's card as a window of its own (`details: false` turns it off).
+  - **The exports:** `GeoPages`, `GeoWindow`, `GeoFrameContext`, `placeDocked` and `dockedSize`.
+- **The Watchbox** (srad/agentspaces-geo.md phase 4).
+  - **The rows:** newest first, each with its severity as a ring and a word, its label, kind and age, and the design's property line.
+  - **Arrivals:** a new arrival slides in with the look's highlight; when the person has scrolled down, an "N new" pill shows instead.
+  - **Selecting:** a row selects its feature on the map. From another window of a GeoLayout it goes through the frame's new channel, `focus` and `onFocus`.
+  - **Areas:** a box or a polygon feature lists the features inside it, draws the area on the layout's map (`setOverlay`), and marks entries.
+  - **The rest:** row actions; "Nothing yet. Waiting for …"; "The feed stopped" past twice `expectSeconds`.
+- **Visualize** (GEO-D-01 to D-03): a chart of a bound table by a spec. It reuses `Chart`'s scales and bar shape, and keeps the dataviz rules:
+  - one value axis;
+  - a legend for two series or more, and direct labels for four or fewer;
+  - the look's hues in fixed order, with a ninth series folded into Other;
+  - a tooltip on every mark, and a crosshair with each series' value on a line or an area;
+  - a table view, as a toggle or below;
+  - "No column … in the table" for a spec that names a missing column.
+- **Chart this:** a `DataTable` draws its shown rows as a chart guessed from its columns, and goes back to the rows.
+- **GraphView** (GEO-G-01 to G-03). Force, tree or layered layout, deterministic, with 2,000 nodes and 5,000 edges in well under 2 s.
+  - **Moving around:** pan, zoom, drag a node, and click to select.
+  - **The map:** a node whose id is a GeoFeature's selects it on the map, from another window of a GeoLayout too.
+  - **The look:** kinds take the look's hues with a legend, and a table view lists the edges.
+  - **Unchanged:** `Graph` and `Chart`.
+- **GraphView draws with WebGL past 500 nodes** (GEO-G-03). Up to 500 nodes it draws SVG as before. Past 500 it draws with deck.gl's layers in an orthographic view, where the page has WebGL 2:
+  - **Loading:** the drawing is a chunk of its own (`graph-gl`), loaded the first time a large graph draws, so the library's bundle does not grow. A page without WebGL 2, or without `@deck.gl/core` and `@deck.gl/layers`, draws SVG. So does one where deck.gl does not start within 8 s of the page's load; the clock starts when the page has loaded, since deck.gl makes no device before that.
+  - **Falling back:** a graph whose WebGL context is lost after the start (the browser takes the oldest back when a page holds too many) draws SVG, not a blank canvas, and deck.gl's later errors are logged. A fallback holds for that graph; a graph of another shape tries WebGL again.
+  - **The same handling:** pan, zoom, drag a node, select it (and its feature on the map), the legend, the count and the table view work as over SVG. A press finds its node by position (the new `nearestNode`), for both drawings.
+  - **Labels:** as over SVG, they show once zoomed in to 1.5 or more, and the selected node's always shows. Edges are curves without arrowheads.
+  - **Accessibility:** the canvas is an image whose name gives the counts and points to the Table button, which lists every edge.
+  - **The keys:** with the drawing focused (SVG or WebGL), the arrows pan, + and − zoom, and 0 fits.
+  - **The exports:** `graphDrawing`, `graphViewState`, `nearestNode` and `GRAPH_WEBGL_PAST`.
+- **The frame-rate probe** (GEO-M-04, GEO-Q-20, GEO-G-03). `npm run perf` runs `tools/perf-probe.mjs` in Chrome, in a 2560 × 1440 window. It pans a GeoMap of 10,000 points and 500 polygons, and a GraphView of 2,000 nodes and 5,000 edges, for several seconds each. It counts content frames (frames in which the drawing drew something new, not animation-frame ticks), less the share the compositor dropped, and the pointer moves that reached the page. It also reports the graph's layout time and the WebGL renderer, and checks that a lost WebGL context leaves the graph on SVG. A missed target exits 1: 30 frames shown a second, 30 moves a second reaching the page, a layout under 2 s. On an Apple M5 in headless Chrome (Metal through ANGLE) every scene showed about 60 frames a second.
+- **Basemaps by name.** `registerBasemap(name, style)` adds a basemap a design may name beside `osm`, `osm-dark` and `plain`; a design never names a URL. The attribution is drawn in the look.
+- **`askChat`** puts text in a drawn chat's box, as a feature card's Ask does.
+- **The feature logic** is exported for a host's own components: `featureOf`, `featureLayers`, `lookOf`, `clusterPoints`, `searchFeatures`, `cardFields`, `ageOf`, `capped`, `geoState` and the rest.
+- **MapLibre's worker module** now sits beside the gallery's map chunk, so the gallery's maps load their tiles.
+- **Fixes from the geo review (2026-11-12).**
+  - **A layer's count when kinds share a binding:** the binding's total counts every kind it matched, so a layer takes it only when it draws the whole path. A layer of some kinds shows its own count, and adds "from the newest N of M" only when the binding was cut. It no longer says "5 of 23" for an uncut binding.
+  - **A file chosen in the tree stays in the preview:** a write of the whole data model from the feed (the page's stream replayed after a reconnect) cleared the preview's path while the tree still showed the file. The tree puts an emptied choice back; a citation chip's choice still wins.
+  - **Accessibility (axe):** a Watchbox row's name is its visible text, with a hidden "show on the map", so the label is in the name (WCAG 2.5.3). The selected row's link in the map's table view reads in ink, for contrast. `npm run axe` finds no serious or critical violation in either mode.
+  - **The details window's stacking:** its container no longer sets a z-index of its own, so the window shares one stacking order with the layout's windows and a click raises it above them.
+  - **A '#' in a feature id.** A Point or MultiPoint whose id held a '#' no longer stops the GeoMap from drawing, and never takes another feature's look or click. Each point carries its feature's id apart from its draw key; the new `pointsOf` exports the expansion, and `clusterPoints` keeps the type it is given.
+  - **A new look or basemap** redraws the features on the new map, where it used to show the basemap alone.
+  - **A map first drawn hidden** (a page that is not current, a closed window) fits its features when it gets a size. The adapter's `fit` now says whether it fitted.
+  - **The time window.** A watchbox's row or a search's pick for a feature outside the window selects it, moves the window to end at its time, and flies there. The slider's grid ends on the newest time (`sliderGrid`), so the thumb reaches it, and at the right end the window follows the newest features.
+  - **The details window** keeps its own place when another window moves or raises. It opens above the layout's windows, and a click raises it in one order with them (the frame's optional `raiseOver`).
+  - **The bottom row** of docked windows starts after the widest open left window, so a left window resized wider is not covered.
+  - **Visualize.** A line or an area with a `sort` runs left to right: each series' points come in the categories' order. A real series named Other stays itself when the rest fold, and the fold is then named "Other (rest)".
+  - **The Watchbox** announces a feature that left the data and came back as a new arrival.
+  - **The FeatureCard's Copy id** shows the id to copy by hand where the page has no clipboard (a page over plain http).
+  - **The FeatureSearch.** Enter pressed right after typing picks the first result of what was typed, not the arrows' place in the previous list.
+
 ## Unreleased: 0.6.0
 
 The first release of `@agentspaces/a2ui-react` on npm, from its own repository. It draws the catalogs of `agentspaces-a2ui` 0.6.0 over `@a2ui/react` and `@a2ui/web_core` 0.15.0.

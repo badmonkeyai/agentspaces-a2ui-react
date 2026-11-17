@@ -71,7 +71,9 @@ export class AgentSpacesSplit extends HTMLElement {
   }
 
   attributeChangedCallback() {
-    if (this.isConnected) this.build();
+    // a rebuild sets the panes' minimums again, and a new stack-below moves the threshold: judge the stacking now, since
+    // no resize may follow to make the observer do it
+    if (this.isConnected) { this.build(); this.stack(); }
   }
 
   /** The panes' current shares (0 to 1), in order. */
@@ -171,6 +173,7 @@ export class AgentSpacesSplit extends HTMLElement {
   }
 
   private apply() {
+    const stacked = this.hasAttribute('stacked');
     const panes = this.root.querySelectorAll<HTMLElement>('.pane');
     const open = this.sizes.reduce((a, s, i) => a + (this.collapsed[i] ? 0 : s), 0) || 1;
     panes.forEach((pane, i) => {
@@ -179,8 +182,12 @@ export class AgentSpacesSplit extends HTMLElement {
       pane.style.flex = this.collapsed[i] ? '' : `${(this.sizes[i] / open).toFixed(4)} 1 0`;
       const rail = pane.querySelector('.rail');
       rail?.setAttribute('aria-expanded', String(!this.collapsed[i]));
+      // a pane's minimum holds along the split; stacked panes each take the whole width, and a minimum kept from the wide
+      // layout would only hold the panes past the element's edge, so stacking clears it and unstacking sets it again
       const p = this.specs[i];
-      if (p?.min && !this.hasAttribute('stacked')) pane.style[this.vertical ? 'minHeight' : 'minWidth'] = this.collapsed[i] ? '' : p.min + 'px';
+      pane.style.minWidth = '';
+      pane.style.minHeight = '';
+      if (p?.min && !stacked && !this.collapsed[i]) pane.style[this.vertical ? 'minHeight' : 'minWidth'] = p.min + 'px';
     });
     this.root.querySelectorAll<HTMLElement>('.sep').forEach(sep => {
       const i = Number(sep.dataset.index);
@@ -193,8 +200,11 @@ export class AgentSpacesSplit extends HTMLElement {
   private stack() {
     const below = Number(this.getAttribute('stack-below') || 0);
     const width = this.getBoundingClientRect().width;
-    if (below > 0 && width > 0 && width < below) this.setAttribute('stacked', '');
+    const stacked = below > 0 && width > 0 && width < below;
+    if (stacked === this.hasAttribute('stacked')) return;
+    if (stacked) this.setAttribute('stacked', '');
     else this.removeAttribute('stacked');
+    this.apply();
   }
 
   private read(): Kept | undefined {

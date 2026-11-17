@@ -20,9 +20,9 @@ const files = [file('t', 'notes.txt', 'text/plain'), file('m', 'overspend.md', '
 async function preview(id, props = {}) {
   ui.fileSources.set('pv', { url: (f, view) => `https://feed.example/files/app/${f.root}${view ? '?view=1' : ''}`, text: async f => TEXTS[f.root] ?? '' });
   const env = [
-    { version: 'v0.9.1', createSurface: { surfaceId: 'pv', catalogId: 'agentspaces-widgets' } },
-    { version: 'v0.9.1', updateComponents: { surfaceId: 'pv', components: [{ id: 'root', component: 'Column', children: ['preview'] }, { id: 'preview', component: 'FilePreview', file: id, files: '/files', csvRows: 2, ...props }] } },
-    { version: 'v0.9.1', updateDataModel: { surfaceId: 'pv', path: '/', value: { files } } },
+    { version: '1.0', createSurface: { surfaceId: 'pv', catalogId: 'agentspaces-widgets' } },
+    { version: '1.0', updateComponents: { surfaceId: 'pv', components: [{ id: 'root', component: 'Column', children: ['preview'] }, { id: 'preview', component: 'FilePreview', file: id, files: '/files', csvRows: 2, ...props }] } },
+    { version: '1.0', updateDataModel: { surfaceId: 'pv', path: '/', value: { files } } },
   ];
   const m = await mount(React.createElement(ui.Surfaces, { envelopes: env }));
   await React.act(async () => { await new Promise(r => setTimeout(r, 0)); });

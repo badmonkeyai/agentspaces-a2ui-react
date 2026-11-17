@@ -143,7 +143,7 @@ export const Menu = define<MenuProps>('Menu', ({ props, ctx }) => {
   const checks = useRef(new Map<string, boolean>());
   const isChecked = (item: MenuItem) => {
     const c = item.checked as unknown;
-    if (c && typeof c === 'object' && 'path' in (c as object)) return checks.current.get(item.id) ?? Boolean(ctx.get((c as { path: string }).path));
+    if (c && typeof c === 'object' && '@path' in (c as object)) return checks.current.get(item.id) ?? Boolean(ctx.get((c as { '@path': string })['@path']));
     return Boolean(c);
   };
   const run = (item: MenuItem) => {

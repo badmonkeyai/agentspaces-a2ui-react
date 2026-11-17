@@ -3,14 +3,14 @@
 export interface GoldenSurface { name: string; state?: string; surfaceId: string; catalogId: string; envelopes: Array<Record<string, unknown>>; expectText: string[] }
 export const GOLDENS: GoldenSurface[] = [
   {
-    "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json",
+    "catalogId": "https://a2ui.org/specification/v1_0/catalogs/basic/catalog.json",
     "envelopes": [
       {
         "createSurface": {
-          "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json",
+          "catalogId": "https://a2ui.org/specification/v1_0/catalogs/basic/catalog.json",
           "surfaceId": "text"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -26,21 +26,20 @@ export const GOLDENS: GoldenSurface[] = [
             {
               "component": "Text",
               "id": "title",
-              "text": "Claims this week",
-              "variant": "h2"
+              "text": "## Claims this week"
             },
             {
               "component": "Text",
               "id": "body",
               "text": {
-                "path": "/summary"
+                "@path": "/summary"
               },
               "variant": "body"
             }
           ],
           "surfaceId": "text"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateDataModel": {
@@ -50,7 +49,7 @@ export const GOLDENS: GoldenSurface[] = [
             "summary": "Twelve claims opened, nine closed."
           }
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -68,7 +67,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-viz",
           "surfaceId": "chart"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -101,7 +100,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "chart"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateDataModel": {
@@ -130,7 +129,7 @@ export const GOLDENS: GoldenSurface[] = [
             ]
           }
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -149,9 +148,587 @@ export const GOLDENS: GoldenSurface[] = [
       {
         "createSurface": {
           "catalogId": "agentspaces-viz",
+          "surfaceId": "visualize"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "spendChart"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "aggregate": "sum",
+              "color": "quarter",
+              "component": "Visualize",
+              "id": "spendChart",
+              "mark": "column",
+              "rows": "/spend",
+              "sort": "-y",
+              "title": "Spend by region",
+              "unit": "USD",
+              "x": "region",
+              "y": "amount"
+            }
+          ],
+          "surfaceId": "visualize"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "visualize",
+          "value": {
+            "spend": [
+              {
+                "amount": 120,
+                "quarter": "Q1",
+                "region": "north"
+              },
+              {
+                "amount": 90,
+                "quarter": "Q2",
+                "region": "north"
+              },
+              {
+                "amount": 60,
+                "quarter": "Q1",
+                "region": "south"
+              },
+              {
+                "amount": 15,
+                "quarter": "Q1",
+                "region": "south"
+              },
+              {
+                "amount": 40,
+                "quarter": "Q2",
+                "region": "south"
+              }
+            ]
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Spend by region",
+      "north",
+      "south",
+      "Q1",
+      "Q2"
+    ],
+    "name": "Visualize",
+    "state": "full",
+    "surfaceId": "visualize"
+  },
+  {
+    "catalogId": "agentspaces-viz",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-viz",
+          "surfaceId": "visualize-empty"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "spendChart"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "aggregate": "sum",
+              "color": "quarter",
+              "component": "Visualize",
+              "id": "spendChart",
+              "mark": "column",
+              "rows": "/spend",
+              "sort": "-y",
+              "title": "Spend by region",
+              "unit": "USD",
+              "x": "region",
+              "y": "amount"
+            }
+          ],
+          "surfaceId": "visualize-empty"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "visualize-empty",
+          "value": {
+            "spend": []
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Spend by region",
+      "No rows yet"
+    ],
+    "name": "Visualize",
+    "state": "empty",
+    "surfaceId": "visualize-empty"
+  },
+  {
+    "catalogId": "agentspaces-viz",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-viz",
+          "surfaceId": "visualize-loading"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "spendChart"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "aggregate": "sum",
+              "color": "quarter",
+              "component": "Visualize",
+              "id": "spendChart",
+              "mark": "column",
+              "rows": "/spend",
+              "sort": "-y",
+              "title": "Spend by region",
+              "unit": "USD",
+              "x": "region",
+              "y": "amount"
+            }
+          ],
+          "surfaceId": "visualize-loading"
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Spend by region",
+      "Loading the rows"
+    ],
+    "name": "Visualize",
+    "state": "loading",
+    "surfaceId": "visualize-loading"
+  },
+  {
+    "catalogId": "agentspaces-viz",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-viz",
+          "surfaceId": "visualize-error"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "spendChart"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "aggregate": "sum",
+              "color": "quarter",
+              "component": "Visualize",
+              "id": "spendChart",
+              "mark": "column",
+              "rows": "/spend",
+              "sort": "-y",
+              "title": "Spend by region",
+              "unit": "USD",
+              "x": "region",
+              "y": "amount"
+            }
+          ],
+          "surfaceId": "visualize-error"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "visualize-error",
+          "value": {
+            "spend": "not a list"
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Spend by region",
+      "Unavailable",
+      "do not read as a table"
+    ],
+    "name": "Visualize",
+    "state": "error",
+    "surfaceId": "visualize-error"
+  },
+  {
+    "catalogId": "agentspaces-viz",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-viz",
+          "surfaceId": "graphview"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "lineage"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "component": "GraphView",
+              "edges": "/edges",
+              "id": "lineage",
+              "layout": "layered",
+              "nodes": "/nodes",
+              "title": "Who feeds whom"
+            }
+          ],
+          "surfaceId": "graphview"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "graphview",
+          "value": {
+            "edges": [
+              {
+                "rel": "reads",
+                "source": "claimsDb",
+                "target": "registrar"
+              },
+              {
+                "rel": "hands over",
+                "source": "registrar",
+                "target": "adjuster"
+              }
+            ],
+            "nodes": [
+              {
+                "id": "claimsDb",
+                "kind": "source",
+                "label": "claims-db"
+              },
+              {
+                "id": "registrar",
+                "kind": "agent",
+                "label": "registrar"
+              },
+              {
+                "id": "adjuster",
+                "kind": "agent",
+                "label": "adjuster"
+              }
+            ]
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Who feeds whom",
+      "claims-db",
+      "registrar",
+      "adjuster"
+    ],
+    "name": "GraphView",
+    "state": "full",
+    "surfaceId": "graphview"
+  },
+  {
+    "catalogId": "agentspaces-viz",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-viz",
+          "surfaceId": "graphview-empty"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "lineage"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "component": "GraphView",
+              "edges": "/edges",
+              "id": "lineage",
+              "layout": "layered",
+              "nodes": "/nodes",
+              "title": "Who feeds whom"
+            }
+          ],
+          "surfaceId": "graphview-empty"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "graphview-empty",
+          "value": {
+            "edges": [],
+            "nodes": []
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Who feeds whom",
+      "No graph yet",
+      "No nodes yet"
+    ],
+    "name": "GraphView",
+    "state": "empty",
+    "surfaceId": "graphview-empty"
+  },
+  {
+    "catalogId": "agentspaces-viz",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-viz",
+          "surfaceId": "graphview-loading"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "lineage"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "component": "GraphView",
+              "edges": "/edges",
+              "id": "lineage",
+              "layout": "layered",
+              "nodes": "/nodes",
+              "title": "Who feeds whom"
+            }
+          ],
+          "surfaceId": "graphview-loading"
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Who feeds whom",
+      "Loading the graph"
+    ],
+    "name": "GraphView",
+    "state": "loading",
+    "surfaceId": "graphview-loading"
+  },
+  {
+    "catalogId": "agentspaces-viz",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-viz",
+          "surfaceId": "graphview-error"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "lineage"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "component": "GraphView",
+              "edges": "/edges",
+              "id": "lineage",
+              "layout": "layered",
+              "nodes": "/nodes",
+              "title": "Who feeds whom"
+            }
+          ],
+          "surfaceId": "graphview-error"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "graphview-error",
+          "value": {
+            "edges": [],
+            "nodes": "not a list"
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Who feeds whom",
+      "Unavailable",
+      "do not read as a table"
+    ],
+    "name": "GraphView",
+    "state": "error",
+    "surfaceId": "graphview-error"
+  },
+  {
+    "catalogId": "agentspaces-viz",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-viz",
+          "surfaceId": "graphview-lit"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "path"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "component": "GraphView",
+              "edges": "/edges",
+              "id": "path",
+              "layout": "layered",
+              "nodes": "/nodes",
+              "title": "Why the claim is held"
+            }
+          ],
+          "surfaceId": "graphview-lit"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "graphview-lit",
+          "value": {
+            "edges": [
+              {
+                "lit": true,
+                "rel": "held for",
+                "source": "claim",
+                "target": "receipt"
+              },
+              {
+                "lit": true,
+                "rel": "required by",
+                "source": "receipt",
+                "target": "policy"
+              },
+              {
+                "rel": "charged to",
+                "source": "claim",
+                "target": "travel"
+              }
+            ],
+            "nodes": [
+              {
+                "id": "claim",
+                "kind": "claim",
+                "label": "Claim C-1001",
+                "lit": true
+              },
+              {
+                "id": "receipt",
+                "kind": "finding",
+                "label": "Missing receipt",
+                "lit": true
+              },
+              {
+                "id": "policy",
+                "kind": "source",
+                "label": "Receipts policy",
+                "lit": true
+              },
+              {
+                "id": "travel",
+                "kind": "finding",
+                "label": "Travel budget"
+              }
+            ]
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Why the claim is held",
+      "Claim C-1001",
+      "Missing receipt",
+      "Receipts policy",
+      "Travel budget"
+    ],
+    "name": "GraphView",
+    "state": "lit",
+    "surfaceId": "graphview-lit"
+  },
+  {
+    "catalogId": "agentspaces-viz",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-viz",
           "surfaceId": "datatable"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -183,7 +760,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "datatable"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateDataModel": {
@@ -202,7 +779,7 @@ export const GOLDENS: GoldenSurface[] = [
             ]
           }
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -222,7 +799,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-viz",
           "surfaceId": "map"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -273,7 +850,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "map"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateDataModel": {
@@ -346,7 +923,7 @@ export const GOLDENS: GoldenSurface[] = [
             ]
           }
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -363,9 +940,179 @@ export const GOLDENS: GoldenSurface[] = [
       {
         "createSurface": {
           "catalogId": "agentspaces-viz",
+          "surfaceId": "datatable-labelled"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "pages"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "columns": [
+                {
+                  "key": "title",
+                  "title": "Page"
+                },
+                {
+                  "key": "site",
+                  "title": "Site"
+                }
+              ],
+              "component": "DataTable",
+              "id": "pages",
+              "rowAction": "pages.add",
+              "rowActionLabel": "Add the page",
+              "rows": "/pages"
+            }
+          ],
+          "surfaceId": "datatable-labelled"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "datatable-labelled",
+          "value": {
+            "pages": [
+              {
+                "site": "docs.example.com",
+                "title": "Claims handbook"
+              },
+              {
+                "site": "docs.example.com",
+                "title": "Receipts policy"
+              }
+            ]
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Page",
+      "Site",
+      "Claims handbook",
+      "Receipts policy",
+      "Add the page"
+    ],
+    "name": "DataTable",
+    "state": "labelled",
+    "surfaceId": "datatable-labelled"
+  },
+  {
+    "catalogId": "agentspaces-viz",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-viz",
+          "surfaceId": "graph-lit"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "route"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "component": "Graph",
+              "edges": "/edges",
+              "id": "route",
+              "layout": "columns",
+              "nodes": "/nodes"
+            }
+          ],
+          "surfaceId": "graph-lit"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "graph-lit",
+          "value": {
+            "edges": [
+              {
+                "from": "claim",
+                "label": "held for",
+                "lit": true,
+                "to": "receipt"
+              },
+              {
+                "from": "receipt",
+                "label": "required by",
+                "lit": true,
+                "to": "policy"
+              },
+              {
+                "from": "claim",
+                "label": "charged to",
+                "to": "travel"
+              }
+            ],
+            "nodes": [
+              {
+                "column": "asked",
+                "id": "claim",
+                "lit": true,
+                "title": "Claim C-1001"
+              },
+              {
+                "column": "found",
+                "id": "receipt",
+                "lit": true,
+                "title": "Missing receipt"
+              },
+              {
+                "column": "source",
+                "id": "policy",
+                "lit": true,
+                "title": "Receipts policy"
+              },
+              {
+                "column": "found",
+                "id": "travel",
+                "title": "Travel budget"
+              }
+            ]
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Claim C-1001",
+      "Missing receipt",
+      "Receipts policy",
+      "Travel budget",
+      "held for, on the path"
+    ],
+    "name": "Graph",
+    "state": "lit",
+    "surfaceId": "graph-lit"
+  },
+  {
+    "catalogId": "agentspaces-viz",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-viz",
           "surfaceId": "graph"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -388,7 +1135,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "graph"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateDataModel": {
@@ -416,7 +1163,7 @@ export const GOLDENS: GoldenSurface[] = [
             ]
           }
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -434,7 +1181,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-viz",
           "surfaceId": "timeline"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -455,7 +1202,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "timeline"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateDataModel": {
@@ -480,7 +1227,7 @@ export const GOLDENS: GoldenSurface[] = [
             ]
           }
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -500,7 +1247,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-viz",
           "surfaceId": "report"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -527,7 +1274,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "report"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -547,7 +1294,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-viz",
           "surfaceId": "notification"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -569,7 +1316,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "notification"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateDataModel": {
@@ -587,7 +1334,7 @@ export const GOLDENS: GoldenSurface[] = [
             ]
           }
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -606,7 +1353,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-viz",
           "surfaceId": "form"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -631,7 +1378,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "form"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -649,7 +1396,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-viz",
           "surfaceId": "window"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -678,7 +1425,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "window"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateDataModel": {
@@ -688,7 +1435,7 @@ export const GOLDENS: GoldenSurface[] = [
             "speed": 42
           }
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -706,7 +1453,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-viz",
           "surfaceId": "conversation"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -728,7 +1475,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "conversation"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateDataModel": {
@@ -760,7 +1507,7 @@ export const GOLDENS: GoldenSurface[] = [
             ]
           }
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -778,7 +1525,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-viz",
           "surfaceId": "notice"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -801,7 +1548,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "notice"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateDataModel": {
@@ -811,7 +1558,7 @@ export const GOLDENS: GoldenSurface[] = [
             "why": "Bind a provider on the Models screen."
           }
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -830,7 +1577,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-viz",
           "surfaceId": "toolbar"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -861,7 +1608,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "toolbar"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -880,7 +1627,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-viz",
           "surfaceId": "keyvalue"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -910,7 +1657,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "keyvalue"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateDataModel": {
@@ -920,7 +1667,7 @@ export const GOLDENS: GoldenSurface[] = [
             "open": 42
           }
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -941,7 +1688,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-viz",
           "surfaceId": "prose"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -961,7 +1708,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "prose"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateDataModel": {
@@ -971,7 +1718,7 @@ export const GOLDENS: GoldenSurface[] = [
             "notes": "Spend rose **four percent** this week."
           }
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -989,7 +1736,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-viz",
           "surfaceId": "stat"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -1013,7 +1760,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "stat"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateDataModel": {
@@ -1025,7 +1772,7 @@ export const GOLDENS: GoldenSurface[] = [
             "openStatus": "good"
           }
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -1044,7 +1791,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-viz",
           "surfaceId": "titlebar"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -1070,7 +1817,7 @@ export const GOLDENS: GoldenSurface[] = [
               "component": "TitleBar",
               "icon": "briefcase",
               "id": "bar",
-              "menu": "bar-menu",
+              "menu": "barMenu",
               "status": {
                 "from": "/working",
                 "labels": {
@@ -1080,12 +1827,12 @@ export const GOLDENS: GoldenSurface[] = [
               },
               "subtitle": "Claims desk",
               "title": {
-                "path": "/app/title"
+                "@path": "/app/title"
               }
             },
             {
               "component": "Menu",
-              "id": "bar-menu",
+              "id": "barMenu",
               "items": [
                 {
                   "action": {
@@ -1110,7 +1857,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "titlebar"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateDataModel": {
@@ -1135,7 +1882,7 @@ export const GOLDENS: GoldenSurface[] = [
             ]
           }
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -1157,7 +1904,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-viz",
           "surfaceId": "titlebar-empty"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -1177,7 +1924,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "titlebar-empty"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -1195,7 +1942,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-viz",
           "surfaceId": "titlebar-loading"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -1218,13 +1965,13 @@ export const GOLDENS: GoldenSurface[] = [
                 }
               },
               "title": {
-                "path": "/app/title"
+                "@path": "/app/title"
               }
             }
           ],
           "surfaceId": "titlebar-loading"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -1242,7 +1989,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-viz",
           "surfaceId": "titlebar-error"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -1269,7 +2016,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "titlebar-error"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateDataModel": {
@@ -1289,7 +2036,7 @@ export const GOLDENS: GoldenSurface[] = [
             ]
           }
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -1308,7 +2055,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-viz",
           "surfaceId": "menu"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -1337,7 +2084,7 @@ export const GOLDENS: GoldenSurface[] = [
                     "name": "view.dark"
                   },
                   "checked": {
-                    "path": "/view/dark"
+                    "@path": "/view/dark"
                   },
                   "id": "dark",
                   "label": "Dark mode"
@@ -1387,7 +2134,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "menu"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateDataModel": {
@@ -1399,7 +2146,7 @@ export const GOLDENS: GoldenSurface[] = [
             }
           }
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -1417,7 +2164,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-viz",
           "surfaceId": "menu-empty"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -1441,7 +2188,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "menu-empty"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -1460,7 +2207,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-viz",
           "surfaceId": "menu-loading"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -1484,7 +2231,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "menu-loading"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -1503,7 +2250,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-viz",
           "surfaceId": "menu-error"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -1527,7 +2274,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "menu-error"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateDataModel": {
@@ -1537,7 +2284,7 @@ export const GOLDENS: GoldenSurface[] = [
             "menu": "not a list"
           }
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -1556,7 +2303,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-viz",
           "surfaceId": "split"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -1620,7 +2367,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "split"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateDataModel": {
@@ -1630,7 +2377,7 @@ export const GOLDENS: GoldenSurface[] = [
             "note": "Spend rose **four percent**."
           }
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -1653,7 +2400,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-viz",
           "surfaceId": "split-empty"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -1685,7 +2432,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "split-empty"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -1705,7 +2452,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-viz",
           "surfaceId": "split-loading"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -1751,7 +2498,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "split-loading"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -1770,7 +2517,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-viz",
           "surfaceId": "split-error"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -1803,7 +2550,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "split-error"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -1823,7 +2570,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-widgets",
           "surfaceId": "chat"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -1855,7 +2602,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "chat"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateDataModel": {
@@ -1935,7 +2682,7 @@ export const GOLDENS: GoldenSurface[] = [
             "progress": []
           }
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -1958,7 +2705,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-widgets",
           "surfaceId": "chat-empty"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -1990,7 +2737,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "chat-empty"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -2011,7 +2758,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-widgets",
           "surfaceId": "chat-loading"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -2043,7 +2790,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "chat-loading"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateDataModel": {
@@ -2105,7 +2852,7 @@ export const GOLDENS: GoldenSurface[] = [
             ]
           }
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -2124,7 +2871,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-widgets",
           "surfaceId": "chat-error"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -2156,7 +2903,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "chat-error"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateDataModel": {
@@ -2218,7 +2965,7 @@ export const GOLDENS: GoldenSurface[] = [
             ]
           }
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -2236,9 +2983,143 @@ export const GOLDENS: GoldenSurface[] = [
       {
         "createSurface": {
           "catalogId": "agentspaces-widgets",
+          "surfaceId": "chat-followups"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "chat"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "agent": "workbench",
+              "component": "Chat",
+              "controls": [
+                "copy",
+                "feedback"
+              ],
+              "format": "text/markdown",
+              "id": "chat",
+              "key": "main",
+              "suggestions": {
+                "@path": "/followups"
+              }
+            }
+          ],
+          "surfaceId": "chat-followups"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "chat-followups",
+          "value": {
+            "conversations": [
+              {
+                "at": "2026-11-10T09:00:30Z",
+                "attachments": [
+                  "f-q3"
+                ],
+                "from": {
+                  "kind": "person",
+                  "name": "ana",
+                  "peer": ""
+                },
+                "id": "m-1",
+                "inReplyTo": "",
+                "key": "main",
+                "schemaVersion": 1,
+                "text": "Where did we overspend in Q3?"
+              },
+              {
+                "at": "2026-11-10T09:01:00Z",
+                "attachments": [],
+                "cites": [
+                  {
+                    "file": "f-q3",
+                    "name": "q3-expenses.csv",
+                    "path": "data/q3-expenses.csv"
+                  }
+                ],
+                "format": "text/markdown",
+                "from": {
+                  "kind": "agent",
+                  "name": "workbench",
+                  "peer": ""
+                },
+                "id": "m-2",
+                "inReplyTo": "m-1",
+                "key": "main",
+                "schemaVersion": 2,
+                "text": "Travel ran **18 percent** over its budget."
+              }
+            ],
+            "files": [
+              {
+                "at": "2026-11-10T09:00:00Z",
+                "by": "ana",
+                "bytes": 1840,
+                "id": "f-q3",
+                "mediaType": "text/csv",
+                "name": "q3-expenses.csv",
+                "path": "data/q3-expenses.csv",
+                "replaces": "",
+                "root": "r-q3",
+                "schemaVersion": 2,
+                "sha256": "sha256:00",
+                "sharedWith": []
+              }
+            ],
+            "followups": [
+              {
+                "line": "m-2",
+                "text": "Which receipts are missing?"
+              },
+              {
+                "label": "Travel claims over budget",
+                "line": "m-2",
+                "text": "Which travel claims of Q3 ran over their budget, which receipts does each lack, and who approved each of them?"
+              },
+              {
+                "text": "What does the receipts policy say?"
+              },
+              {
+                "line": "m-0",
+                "text": "What was the Q2 total?"
+              }
+            ],
+            "progress": []
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Travel ran",
+      "Which receipts are missing?",
+      "Travel claims over budget",
+      "What does the receipts policy say?"
+    ],
+    "name": "Chat",
+    "state": "followups",
+    "surfaceId": "chat-followups"
+  },
+  {
+    "catalogId": "agentspaces-widgets",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-widgets",
           "surfaceId": "filetree"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -2268,7 +3149,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "filetree"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateDataModel": {
@@ -2321,7 +3202,7 @@ export const GOLDENS: GoldenSurface[] = [
             ]
           }
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -2344,7 +3225,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-widgets",
           "surfaceId": "filetree-empty"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -2374,7 +3255,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "filetree-empty"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateDataModel": {
@@ -2384,7 +3265,7 @@ export const GOLDENS: GoldenSurface[] = [
             "files": []
           }
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -2404,7 +3285,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-widgets",
           "surfaceId": "filetree-loading"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -2434,7 +3315,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "filetree-loading"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -2453,7 +3334,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-widgets",
           "surfaceId": "filetree-error"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -2483,7 +3364,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "filetree-error"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateDataModel": {
@@ -2493,7 +3374,7 @@ export const GOLDENS: GoldenSurface[] = [
             "files": "not a list"
           }
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -2512,7 +3393,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-widgets",
           "surfaceId": "filepreview"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -2527,7 +3408,7 @@ export const GOLDENS: GoldenSurface[] = [
             {
               "component": "FilePreview",
               "file": {
-                "path": "/selected/file"
+                "@path": "/selected/file"
               },
               "files": "/files",
               "id": "preview"
@@ -2535,7 +3416,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "filepreview"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateDataModel": {
@@ -2577,7 +3458,7 @@ export const GOLDENS: GoldenSurface[] = [
             }
           }
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -2598,7 +3479,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-widgets",
           "surfaceId": "filepreview-empty"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -2613,7 +3494,7 @@ export const GOLDENS: GoldenSurface[] = [
             {
               "component": "FilePreview",
               "file": {
-                "path": "/selected/file"
+                "@path": "/selected/file"
               },
               "files": "/files",
               "id": "preview"
@@ -2621,7 +3502,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "filepreview-empty"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateDataModel": {
@@ -2646,7 +3527,7 @@ export const GOLDENS: GoldenSurface[] = [
             ]
           }
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -2664,7 +3545,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-widgets",
           "surfaceId": "filepreview-loading"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -2679,7 +3560,7 @@ export const GOLDENS: GoldenSurface[] = [
             {
               "component": "FilePreview",
               "file": {
-                "path": "/selected/file"
+                "@path": "/selected/file"
               },
               "files": "/files",
               "id": "preview"
@@ -2687,7 +3568,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "filepreview-loading"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateDataModel": {
@@ -2699,7 +3580,7 @@ export const GOLDENS: GoldenSurface[] = [
             }
           }
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -2717,7 +3598,7 @@ export const GOLDENS: GoldenSurface[] = [
           "catalogId": "agentspaces-widgets",
           "surfaceId": "filepreview-error"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateComponents": {
@@ -2732,7 +3613,7 @@ export const GOLDENS: GoldenSurface[] = [
             {
               "component": "FilePreview",
               "file": {
-                "path": "/selected/file"
+                "@path": "/selected/file"
               },
               "files": "/files",
               "id": "preview"
@@ -2740,7 +3621,7 @@ export const GOLDENS: GoldenSurface[] = [
           ],
           "surfaceId": "filepreview-error"
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       },
       {
         "updateDataModel": {
@@ -2768,7 +3649,7 @@ export const GOLDENS: GoldenSurface[] = [
             }
           }
         },
-        "version": "v0.9.1"
+        "version": "1.0"
       }
     ],
     "expectText": [
@@ -2779,5 +3660,2759 @@ export const GOLDENS: GoldenSurface[] = [
     "name": "FilePreview",
     "state": "error",
     "surfaceId": "filepreview-error"
+  },
+  {
+    "catalogId": "agentspaces-geo",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-geo",
+          "surfaceId": "geoGeoMap"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "harbour"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "component": "GeoMap",
+              "home": {
+                "center": [
+                  -3,
+                  53.4
+                ],
+                "zoom": 12
+              },
+              "id": "harbour",
+              "layers": [
+                {
+                  "kind": "area.berth",
+                  "label": "Berths",
+                  "path": "/berths"
+                },
+                {
+                  "cluster": {
+                    "below": 9
+                  },
+                  "kind": "track.ship*",
+                  "label": "Ships",
+                  "path": "/ships",
+                  "style": {
+                    "icon": "ship"
+                  }
+                }
+              ]
+            }
+          ],
+          "surfaceId": "geoGeoMap"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "geoGeoMap",
+          "value": {
+            "berths": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    [
+                      [
+                        -3.01,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.4
+                      ]
+                    ]
+                  ],
+                  "type": "Polygon"
+                },
+                "id": "berth4",
+                "kind": "area.berth",
+                "label": "Berth 4",
+                "properties": {},
+                "schemaVersion": 1,
+                "style": {
+                  "fill": "#29261e",
+                  "opacity": 0.6,
+                  "stroke": "#9a8139"
+                },
+                "type": "Feature"
+              }
+            ],
+            "berthsTotal": 1,
+            "ships": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3.0123,
+                    53.4087
+                  ],
+                  "type": "Point"
+                },
+                "id": "ship217",
+                "kind": "track.ship.cargo",
+                "label": "MV Northgate",
+                "properties": {
+                  "destination": "Berth 4",
+                  "mmsi": "235012345",
+                  "speed_kn": 11.2
+                },
+                "schemaVersion": 1,
+                "severity": "info",
+                "style": {
+                  "heading": 74
+                },
+                "type": "Feature"
+              },
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3.05,
+                    53.45
+                  ],
+                  "type": "Point"
+                },
+                "id": "ship340",
+                "kind": "track.ship.tanker",
+                "label": "Saint Brendan",
+                "properties": {
+                  "mmsi": "235099876",
+                  "speed_kn": 0.4
+                },
+                "schemaVersion": 1,
+                "severity": "warning",
+                "style": {},
+                "type": "Feature"
+              }
+            ],
+            "shipsTotal": 2
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Ships",
+      "Berths",
+      "MV Northgate",
+      "Saint Brendan",
+      "Berth 4"
+    ],
+    "name": "GeoMap",
+    "state": "full",
+    "surfaceId": "geoGeoMap"
+  },
+  {
+    "catalogId": "agentspaces-geo",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-geo",
+          "surfaceId": "geoGeoMap-empty"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "harbour"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "component": "GeoMap",
+              "home": {
+                "center": [
+                  -3,
+                  53.4
+                ],
+                "zoom": 12
+              },
+              "id": "harbour",
+              "layers": [
+                {
+                  "kind": "area.berth",
+                  "label": "Berths",
+                  "path": "/berths"
+                },
+                {
+                  "cluster": {
+                    "below": 9
+                  },
+                  "kind": "track.ship*",
+                  "label": "Ships",
+                  "path": "/ships",
+                  "style": {
+                    "icon": "ship"
+                  }
+                }
+              ]
+            }
+          ],
+          "surfaceId": "geoGeoMap-empty"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "geoGeoMap-empty",
+          "value": {
+            "berths": [],
+            "berthsTotal": 0,
+            "ships": [],
+            "shipsTotal": 0
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Ships",
+      "Berths",
+      "No feature yet"
+    ],
+    "name": "GeoMap",
+    "state": "empty",
+    "surfaceId": "geoGeoMap-empty"
+  },
+  {
+    "catalogId": "agentspaces-geo",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-geo",
+          "surfaceId": "geoGeoMap-loading"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "harbour"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "component": "GeoMap",
+              "home": {
+                "center": [
+                  -3,
+                  53.4
+                ],
+                "zoom": 12
+              },
+              "id": "harbour",
+              "layers": [
+                {
+                  "kind": "area.berth",
+                  "label": "Berths",
+                  "path": "/berths"
+                },
+                {
+                  "cluster": {
+                    "below": 9
+                  },
+                  "kind": "track.ship*",
+                  "label": "Ships",
+                  "path": "/ships",
+                  "style": {
+                    "icon": "ship"
+                  }
+                }
+              ]
+            }
+          ],
+          "surfaceId": "geoGeoMap-loading"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "geoGeoMap-loading",
+          "value": {}
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Ships",
+      "Berths",
+      "Loading the features"
+    ],
+    "name": "GeoMap",
+    "state": "loading",
+    "surfaceId": "geoGeoMap-loading"
+  },
+  {
+    "catalogId": "agentspaces-geo",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-geo",
+          "surfaceId": "geoGeoMap-error"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "harbour"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "component": "GeoMap",
+              "home": {
+                "center": [
+                  -3,
+                  53.4
+                ],
+                "zoom": 12
+              },
+              "id": "harbour",
+              "layers": [
+                {
+                  "kind": "area.berth",
+                  "label": "Berths",
+                  "path": "/berths"
+                },
+                {
+                  "cluster": {
+                    "below": 9
+                  },
+                  "kind": "track.ship*",
+                  "label": "Ships",
+                  "path": "/ships",
+                  "style": {
+                    "icon": "ship"
+                  }
+                }
+              ]
+            }
+          ],
+          "surfaceId": "geoGeoMap-error"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "geoGeoMap-error",
+          "value": {
+            "berths": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    [
+                      [
+                        -3.01,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.4
+                      ]
+                    ]
+                  ],
+                  "type": "Polygon"
+                },
+                "id": "berth4",
+                "kind": "area.berth",
+                "label": "Berth 4",
+                "properties": {},
+                "schemaVersion": 1,
+                "style": {
+                  "fill": "#29261e",
+                  "opacity": 0.6,
+                  "stroke": "#9a8139"
+                },
+                "type": "Feature"
+              }
+            ],
+            "berthsTotal": 1,
+            "ships": "not a list"
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Ships",
+      "Berth 4",
+      "Unavailable",
+      "/ships"
+    ],
+    "name": "GeoMap",
+    "state": "error",
+    "surfaceId": "geoGeoMap-error"
+  },
+  {
+    "catalogId": "agentspaces-geo",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-geo",
+          "surfaceId": "geoFeatureCard"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "details",
+                "harbour"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "component": "FeatureCard",
+              "id": "details",
+              "map": "harbour"
+            },
+            {
+              "component": "GeoMap",
+              "home": {
+                "center": [
+                  -3,
+                  53.4
+                ],
+                "zoom": 12
+              },
+              "id": "harbour",
+              "layers": [
+                {
+                  "kind": "area.berth",
+                  "label": "Berths",
+                  "path": "/berths"
+                },
+                {
+                  "cluster": {
+                    "below": 9
+                  },
+                  "kind": "track.ship*",
+                  "label": "Ships",
+                  "path": "/ships",
+                  "style": {
+                    "icon": "ship"
+                  }
+                }
+              ]
+            }
+          ],
+          "surfaceId": "geoFeatureCard"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "geoFeatureCard",
+          "value": {
+            "_geo": {
+              "harbour": {
+                "selected": "ship217"
+              }
+            },
+            "berths": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    [
+                      [
+                        -3.01,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.4
+                      ]
+                    ]
+                  ],
+                  "type": "Polygon"
+                },
+                "id": "berth4",
+                "kind": "area.berth",
+                "label": "Berth 4",
+                "properties": {},
+                "schemaVersion": 1,
+                "style": {
+                  "fill": "#29261e",
+                  "opacity": 0.6,
+                  "stroke": "#9a8139"
+                },
+                "type": "Feature"
+              }
+            ],
+            "berthsTotal": 1,
+            "ships": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3.0123,
+                    53.4087
+                  ],
+                  "type": "Point"
+                },
+                "id": "ship217",
+                "kind": "track.ship.cargo",
+                "label": "MV Northgate",
+                "properties": {
+                  "destination": "Berth 4",
+                  "mmsi": "235012345",
+                  "speed_kn": 11.2
+                },
+                "schemaVersion": 1,
+                "severity": "info",
+                "style": {
+                  "heading": 74
+                },
+                "type": "Feature"
+              },
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3.05,
+                    53.45
+                  ],
+                  "type": "Point"
+                },
+                "id": "ship340",
+                "kind": "track.ship.tanker",
+                "label": "Saint Brendan",
+                "properties": {
+                  "mmsi": "235099876",
+                  "speed_kn": 0.4
+                },
+                "schemaVersion": 1,
+                "severity": "warning",
+                "style": {},
+                "type": "Feature"
+              }
+            ],
+            "shipsTotal": 2
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "MV Northgate",
+      "track.ship.cargo",
+      "info",
+      "235012345",
+      "Berth 4"
+    ],
+    "name": "FeatureCard",
+    "state": "full",
+    "surfaceId": "geoFeatureCard"
+  },
+  {
+    "catalogId": "agentspaces-geo",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-geo",
+          "surfaceId": "geoFeatureCard-empty"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "details",
+                "harbour"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "component": "FeatureCard",
+              "id": "details",
+              "map": "harbour"
+            },
+            {
+              "component": "GeoMap",
+              "home": {
+                "center": [
+                  -3,
+                  53.4
+                ],
+                "zoom": 12
+              },
+              "id": "harbour",
+              "layers": [
+                {
+                  "kind": "area.berth",
+                  "label": "Berths",
+                  "path": "/berths"
+                },
+                {
+                  "cluster": {
+                    "below": 9
+                  },
+                  "kind": "track.ship*",
+                  "label": "Ships",
+                  "path": "/ships",
+                  "style": {
+                    "icon": "ship"
+                  }
+                }
+              ]
+            }
+          ],
+          "surfaceId": "geoFeatureCard-empty"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "geoFeatureCard-empty",
+          "value": {
+            "berths": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    [
+                      [
+                        -3.01,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.4
+                      ]
+                    ]
+                  ],
+                  "type": "Polygon"
+                },
+                "id": "berth4",
+                "kind": "area.berth",
+                "label": "Berth 4",
+                "properties": {},
+                "schemaVersion": 1,
+                "style": {
+                  "fill": "#29261e",
+                  "opacity": 0.6,
+                  "stroke": "#9a8139"
+                },
+                "type": "Feature"
+              }
+            ],
+            "berthsTotal": 1,
+            "ships": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3.0123,
+                    53.4087
+                  ],
+                  "type": "Point"
+                },
+                "id": "ship217",
+                "kind": "track.ship.cargo",
+                "label": "MV Northgate",
+                "properties": {
+                  "destination": "Berth 4",
+                  "mmsi": "235012345",
+                  "speed_kn": 11.2
+                },
+                "schemaVersion": 1,
+                "severity": "info",
+                "style": {
+                  "heading": 74
+                },
+                "type": "Feature"
+              },
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3.05,
+                    53.45
+                  ],
+                  "type": "Point"
+                },
+                "id": "ship340",
+                "kind": "track.ship.tanker",
+                "label": "Saint Brendan",
+                "properties": {
+                  "mmsi": "235099876",
+                  "speed_kn": 0.4
+                },
+                "schemaVersion": 1,
+                "severity": "warning",
+                "style": {},
+                "type": "Feature"
+              }
+            ],
+            "shipsTotal": 2
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Nothing selected",
+      "Select a feature on the map"
+    ],
+    "name": "FeatureCard",
+    "state": "empty",
+    "surfaceId": "geoFeatureCard-empty"
+  },
+  {
+    "catalogId": "agentspaces-geo",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-geo",
+          "surfaceId": "geoFeatureCard-loading"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "details",
+                "harbour"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "component": "FeatureCard",
+              "id": "details",
+              "map": "harbour"
+            },
+            {
+              "component": "GeoMap",
+              "home": {
+                "center": [
+                  -3,
+                  53.4
+                ],
+                "zoom": 12
+              },
+              "id": "harbour",
+              "layers": [
+                {
+                  "kind": "area.berth",
+                  "label": "Berths",
+                  "path": "/berths"
+                },
+                {
+                  "cluster": {
+                    "below": 9
+                  },
+                  "kind": "track.ship*",
+                  "label": "Ships",
+                  "path": "/ships",
+                  "style": {
+                    "icon": "ship"
+                  }
+                }
+              ]
+            }
+          ],
+          "surfaceId": "geoFeatureCard-loading"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "geoFeatureCard-loading",
+          "value": {
+            "_geo": {
+              "harbour": {
+                "selected": "ship217"
+              }
+            }
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Loading the feature"
+    ],
+    "name": "FeatureCard",
+    "state": "loading",
+    "surfaceId": "geoFeatureCard-loading"
+  },
+  {
+    "catalogId": "agentspaces-geo",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-geo",
+          "surfaceId": "geoFeatureCard-error"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "details",
+                "harbour"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "component": "FeatureCard",
+              "id": "details",
+              "map": "harbour"
+            },
+            {
+              "component": "GeoMap",
+              "home": {
+                "center": [
+                  -3,
+                  53.4
+                ],
+                "zoom": 12
+              },
+              "id": "harbour",
+              "layers": [
+                {
+                  "kind": "area.berth",
+                  "label": "Berths",
+                  "path": "/berths"
+                },
+                {
+                  "cluster": {
+                    "below": 9
+                  },
+                  "kind": "track.ship*",
+                  "label": "Ships",
+                  "path": "/ships",
+                  "style": {
+                    "icon": "ship"
+                  }
+                }
+              ]
+            }
+          ],
+          "surfaceId": "geoFeatureCard-error"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "geoFeatureCard-error",
+          "value": {
+            "_geo": {
+              "harbour": {
+                "selected": "ship217"
+              }
+            },
+            "berths": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    [
+                      [
+                        -3.01,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.4
+                      ]
+                    ]
+                  ],
+                  "type": "Polygon"
+                },
+                "id": "berth4",
+                "kind": "area.berth",
+                "label": "Berth 4",
+                "properties": {},
+                "schemaVersion": 1,
+                "style": {
+                  "fill": "#29261e",
+                  "opacity": 0.6,
+                  "stroke": "#9a8139"
+                },
+                "type": "Feature"
+              }
+            ],
+            "berthsTotal": 1,
+            "ships": "not a list"
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Unavailable",
+      "/ships"
+    ],
+    "name": "FeatureCard",
+    "state": "error",
+    "surfaceId": "geoFeatureCard-error"
+  },
+  {
+    "catalogId": "agentspaces-geo",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-geo",
+          "surfaceId": "geoFeatureSearch"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "find",
+                "harbour"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "component": "FeatureSearch",
+              "fields": [
+                "mmsi"
+              ],
+              "id": "find",
+              "map": "harbour"
+            },
+            {
+              "component": "GeoMap",
+              "home": {
+                "center": [
+                  -3,
+                  53.4
+                ],
+                "zoom": 12
+              },
+              "id": "harbour",
+              "layers": [
+                {
+                  "kind": "area.berth",
+                  "label": "Berths",
+                  "path": "/berths"
+                },
+                {
+                  "cluster": {
+                    "below": 9
+                  },
+                  "kind": "track.ship*",
+                  "label": "Ships",
+                  "path": "/ships",
+                  "style": {
+                    "icon": "ship"
+                  }
+                }
+              ]
+            }
+          ],
+          "surfaceId": "geoFeatureSearch"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "geoFeatureSearch",
+          "value": {
+            "berths": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    [
+                      [
+                        -3.01,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.4
+                      ]
+                    ]
+                  ],
+                  "type": "Polygon"
+                },
+                "id": "berth4",
+                "kind": "area.berth",
+                "label": "Berth 4",
+                "properties": {},
+                "schemaVersion": 1,
+                "style": {
+                  "fill": "#29261e",
+                  "opacity": 0.6,
+                  "stroke": "#9a8139"
+                },
+                "type": "Feature"
+              }
+            ],
+            "berthsTotal": 1,
+            "ships": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3.0123,
+                    53.4087
+                  ],
+                  "type": "Point"
+                },
+                "id": "ship217",
+                "kind": "track.ship.cargo",
+                "label": "MV Northgate",
+                "properties": {
+                  "destination": "Berth 4",
+                  "mmsi": "235012345",
+                  "speed_kn": 11.2
+                },
+                "schemaVersion": 1,
+                "severity": "info",
+                "style": {
+                  "heading": 74
+                },
+                "type": "Feature"
+              },
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3.05,
+                    53.45
+                  ],
+                  "type": "Point"
+                },
+                "id": "ship340",
+                "kind": "track.ship.tanker",
+                "label": "Saint Brendan",
+                "properties": {
+                  "mmsi": "235099876",
+                  "speed_kn": 0.4
+                },
+                "schemaVersion": 1,
+                "severity": "warning",
+                "style": {},
+                "type": "Feature"
+              }
+            ],
+            "shipsTotal": 2
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Search the map"
+    ],
+    "name": "FeatureSearch",
+    "state": "full",
+    "surfaceId": "geoFeatureSearch"
+  },
+  {
+    "catalogId": "agentspaces-geo",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-geo",
+          "surfaceId": "geoFeatureSearch-empty"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "find",
+                "harbour"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "component": "FeatureSearch",
+              "fields": [
+                "mmsi"
+              ],
+              "id": "find",
+              "map": "harbour"
+            },
+            {
+              "component": "GeoMap",
+              "home": {
+                "center": [
+                  -3,
+                  53.4
+                ],
+                "zoom": 12
+              },
+              "id": "harbour",
+              "layers": [
+                {
+                  "kind": "area.berth",
+                  "label": "Berths",
+                  "path": "/berths"
+                },
+                {
+                  "cluster": {
+                    "below": 9
+                  },
+                  "kind": "track.ship*",
+                  "label": "Ships",
+                  "path": "/ships",
+                  "style": {
+                    "icon": "ship"
+                  }
+                }
+              ]
+            }
+          ],
+          "surfaceId": "geoFeatureSearch-empty"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "geoFeatureSearch-empty",
+          "value": {
+            "berths": [],
+            "berthsTotal": 0,
+            "ships": [],
+            "shipsTotal": 0
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Search the map",
+      "No feature yet"
+    ],
+    "name": "FeatureSearch",
+    "state": "empty",
+    "surfaceId": "geoFeatureSearch-empty"
+  },
+  {
+    "catalogId": "agentspaces-geo",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-geo",
+          "surfaceId": "geoFeatureSearch-loading"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "find",
+                "harbour"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "component": "FeatureSearch",
+              "fields": [
+                "mmsi"
+              ],
+              "id": "find",
+              "map": "harbour"
+            },
+            {
+              "component": "GeoMap",
+              "home": {
+                "center": [
+                  -3,
+                  53.4
+                ],
+                "zoom": 12
+              },
+              "id": "harbour",
+              "layers": [
+                {
+                  "kind": "area.berth",
+                  "label": "Berths",
+                  "path": "/berths"
+                },
+                {
+                  "cluster": {
+                    "below": 9
+                  },
+                  "kind": "track.ship*",
+                  "label": "Ships",
+                  "path": "/ships",
+                  "style": {
+                    "icon": "ship"
+                  }
+                }
+              ]
+            }
+          ],
+          "surfaceId": "geoFeatureSearch-loading"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "geoFeatureSearch-loading",
+          "value": {}
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Search the map",
+      "Loading the features"
+    ],
+    "name": "FeatureSearch",
+    "state": "loading",
+    "surfaceId": "geoFeatureSearch-loading"
+  },
+  {
+    "catalogId": "agentspaces-geo",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-geo",
+          "surfaceId": "geoFeatureSearch-error"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "find",
+                "harbour"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "component": "FeatureSearch",
+              "fields": [
+                "mmsi"
+              ],
+              "id": "find",
+              "map": "harbour"
+            },
+            {
+              "component": "GeoMap",
+              "home": {
+                "center": [
+                  -3,
+                  53.4
+                ],
+                "zoom": 12
+              },
+              "id": "harbour",
+              "layers": [
+                {
+                  "kind": "area.berth",
+                  "label": "Berths",
+                  "path": "/berths"
+                },
+                {
+                  "cluster": {
+                    "below": 9
+                  },
+                  "kind": "track.ship*",
+                  "label": "Ships",
+                  "path": "/ships",
+                  "style": {
+                    "icon": "ship"
+                  }
+                }
+              ]
+            }
+          ],
+          "surfaceId": "geoFeatureSearch-error"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "geoFeatureSearch-error",
+          "value": {
+            "berths": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    [
+                      [
+                        -3.01,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.4
+                      ]
+                    ]
+                  ],
+                  "type": "Polygon"
+                },
+                "id": "berth4",
+                "kind": "area.berth",
+                "label": "Berth 4",
+                "properties": {},
+                "schemaVersion": 1,
+                "style": {
+                  "fill": "#29261e",
+                  "opacity": 0.6,
+                  "stroke": "#9a8139"
+                },
+                "type": "Feature"
+              }
+            ],
+            "berthsTotal": 1,
+            "ships": "not a list"
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Search the map",
+      "Unavailable",
+      "/ships"
+    ],
+    "name": "FeatureSearch",
+    "state": "error",
+    "surfaceId": "geoFeatureSearch-error"
+  },
+  {
+    "catalogId": "agentspaces-geo",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-geo",
+          "surfaceId": "geoWatchbox"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "alerts",
+                "harbour"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "actions": [
+                {
+                  "label": "Acknowledge",
+                  "name": "acknowledge"
+                }
+              ],
+              "component": "Watchbox",
+              "fields": [
+                "note"
+              ],
+              "id": "alerts",
+              "kind": "incident*",
+              "label": "incidents",
+              "map": "harbour",
+              "path": "/incidents"
+            },
+            {
+              "component": "GeoMap",
+              "home": {
+                "center": [
+                  -3,
+                  53.4
+                ],
+                "zoom": 12
+              },
+              "id": "harbour",
+              "layers": [
+                {
+                  "kind": "area.berth",
+                  "label": "Berths",
+                  "path": "/berths"
+                },
+                {
+                  "cluster": {
+                    "below": 9
+                  },
+                  "kind": "track.ship*",
+                  "label": "Ships",
+                  "path": "/ships",
+                  "style": {
+                    "icon": "ship"
+                  }
+                }
+              ]
+            }
+          ],
+          "surfaceId": "geoWatchbox"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "geoWatchbox",
+          "value": {
+            "berths": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    [
+                      [
+                        -3.01,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.4
+                      ]
+                    ]
+                  ],
+                  "type": "Polygon"
+                },
+                "id": "berth4",
+                "kind": "area.berth",
+                "label": "Berth 4",
+                "properties": {},
+                "schemaVersion": 1,
+                "style": {
+                  "fill": "#29261e",
+                  "opacity": 0.6,
+                  "stroke": "#9a8139"
+                },
+                "type": "Feature"
+              }
+            ],
+            "berthsTotal": 1,
+            "incidents": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3.02,
+                    53.41
+                  ],
+                  "type": "Point"
+                },
+                "id": "inc7",
+                "kind": "incident.collision",
+                "label": "Near miss off Seacombe",
+                "properties": {
+                  "note": "two ferries, 40 m"
+                },
+                "schemaVersion": 1,
+                "severity": "serious",
+                "style": {},
+                "type": "Feature"
+              },
+              {
+                "_at": "2026-11-12T09:04:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:04:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3.04,
+                    53.44
+                  ],
+                  "type": "Point"
+                },
+                "id": "inc8",
+                "kind": "incident.pollution",
+                "label": "Oil sheen",
+                "properties": {
+                  "note": "light, drifting north"
+                },
+                "schemaVersion": 1,
+                "severity": "warning",
+                "style": {},
+                "type": "Feature"
+              }
+            ],
+            "ships": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3.0123,
+                    53.4087
+                  ],
+                  "type": "Point"
+                },
+                "id": "ship217",
+                "kind": "track.ship.cargo",
+                "label": "MV Northgate",
+                "properties": {
+                  "destination": "Berth 4",
+                  "mmsi": "235012345",
+                  "speed_kn": 11.2
+                },
+                "schemaVersion": 1,
+                "severity": "info",
+                "style": {
+                  "heading": 74
+                },
+                "type": "Feature"
+              },
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3.05,
+                    53.45
+                  ],
+                  "type": "Point"
+                },
+                "id": "ship340",
+                "kind": "track.ship.tanker",
+                "label": "Saint Brendan",
+                "properties": {
+                  "mmsi": "235099876",
+                  "speed_kn": 0.4
+                },
+                "schemaVersion": 1,
+                "severity": "warning",
+                "style": {},
+                "type": "Feature"
+              }
+            ],
+            "shipsTotal": 2
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Near miss off Seacombe",
+      "serious",
+      "two ferries, 40 m",
+      "Oil sheen",
+      "warning",
+      "Acknowledge"
+    ],
+    "name": "Watchbox",
+    "state": "full",
+    "surfaceId": "geoWatchbox"
+  },
+  {
+    "catalogId": "agentspaces-geo",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-geo",
+          "surfaceId": "geoWatchbox-empty"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "alerts",
+                "harbour"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "actions": [
+                {
+                  "label": "Acknowledge",
+                  "name": "acknowledge"
+                }
+              ],
+              "component": "Watchbox",
+              "fields": [
+                "note"
+              ],
+              "id": "alerts",
+              "kind": "incident*",
+              "label": "incidents",
+              "map": "harbour",
+              "path": "/incidents"
+            },
+            {
+              "component": "GeoMap",
+              "home": {
+                "center": [
+                  -3,
+                  53.4
+                ],
+                "zoom": 12
+              },
+              "id": "harbour",
+              "layers": [
+                {
+                  "kind": "area.berth",
+                  "label": "Berths",
+                  "path": "/berths"
+                },
+                {
+                  "cluster": {
+                    "below": 9
+                  },
+                  "kind": "track.ship*",
+                  "label": "Ships",
+                  "path": "/ships",
+                  "style": {
+                    "icon": "ship"
+                  }
+                }
+              ]
+            }
+          ],
+          "surfaceId": "geoWatchbox-empty"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "geoWatchbox-empty",
+          "value": {
+            "berths": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    [
+                      [
+                        -3.01,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.4
+                      ]
+                    ]
+                  ],
+                  "type": "Polygon"
+                },
+                "id": "berth4",
+                "kind": "area.berth",
+                "label": "Berth 4",
+                "properties": {},
+                "schemaVersion": 1,
+                "style": {
+                  "fill": "#29261e",
+                  "opacity": 0.6,
+                  "stroke": "#9a8139"
+                },
+                "type": "Feature"
+              }
+            ],
+            "berthsTotal": 1,
+            "incidents": [],
+            "ships": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3.0123,
+                    53.4087
+                  ],
+                  "type": "Point"
+                },
+                "id": "ship217",
+                "kind": "track.ship.cargo",
+                "label": "MV Northgate",
+                "properties": {
+                  "destination": "Berth 4",
+                  "mmsi": "235012345",
+                  "speed_kn": 11.2
+                },
+                "schemaVersion": 1,
+                "severity": "info",
+                "style": {
+                  "heading": 74
+                },
+                "type": "Feature"
+              },
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3.05,
+                    53.45
+                  ],
+                  "type": "Point"
+                },
+                "id": "ship340",
+                "kind": "track.ship.tanker",
+                "label": "Saint Brendan",
+                "properties": {
+                  "mmsi": "235099876",
+                  "speed_kn": 0.4
+                },
+                "schemaVersion": 1,
+                "severity": "warning",
+                "style": {},
+                "type": "Feature"
+              }
+            ],
+            "shipsTotal": 2
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "All quiet",
+      "Waiting for incidents"
+    ],
+    "name": "Watchbox",
+    "state": "empty",
+    "surfaceId": "geoWatchbox-empty"
+  },
+  {
+    "catalogId": "agentspaces-geo",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-geo",
+          "surfaceId": "geoWatchbox-loading"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "alerts",
+                "harbour"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "actions": [
+                {
+                  "label": "Acknowledge",
+                  "name": "acknowledge"
+                }
+              ],
+              "component": "Watchbox",
+              "fields": [
+                "note"
+              ],
+              "id": "alerts",
+              "kind": "incident*",
+              "label": "incidents",
+              "map": "harbour",
+              "path": "/incidents"
+            },
+            {
+              "component": "GeoMap",
+              "home": {
+                "center": [
+                  -3,
+                  53.4
+                ],
+                "zoom": 12
+              },
+              "id": "harbour",
+              "layers": [
+                {
+                  "kind": "area.berth",
+                  "label": "Berths",
+                  "path": "/berths"
+                },
+                {
+                  "cluster": {
+                    "below": 9
+                  },
+                  "kind": "track.ship*",
+                  "label": "Ships",
+                  "path": "/ships",
+                  "style": {
+                    "icon": "ship"
+                  }
+                }
+              ]
+            }
+          ],
+          "surfaceId": "geoWatchbox-loading"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "geoWatchbox-loading",
+          "value": {
+            "berths": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    [
+                      [
+                        -3.01,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.4
+                      ]
+                    ]
+                  ],
+                  "type": "Polygon"
+                },
+                "id": "berth4",
+                "kind": "area.berth",
+                "label": "Berth 4",
+                "properties": {},
+                "schemaVersion": 1,
+                "style": {
+                  "fill": "#29261e",
+                  "opacity": 0.6,
+                  "stroke": "#9a8139"
+                },
+                "type": "Feature"
+              }
+            ],
+            "berthsTotal": 1,
+            "ships": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3.0123,
+                    53.4087
+                  ],
+                  "type": "Point"
+                },
+                "id": "ship217",
+                "kind": "track.ship.cargo",
+                "label": "MV Northgate",
+                "properties": {
+                  "destination": "Berth 4",
+                  "mmsi": "235012345",
+                  "speed_kn": 11.2
+                },
+                "schemaVersion": 1,
+                "severity": "info",
+                "style": {
+                  "heading": 74
+                },
+                "type": "Feature"
+              },
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3.05,
+                    53.45
+                  ],
+                  "type": "Point"
+                },
+                "id": "ship340",
+                "kind": "track.ship.tanker",
+                "label": "Saint Brendan",
+                "properties": {
+                  "mmsi": "235099876",
+                  "speed_kn": 0.4
+                },
+                "schemaVersion": 1,
+                "severity": "warning",
+                "style": {},
+                "type": "Feature"
+              }
+            ],
+            "shipsTotal": 2
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Loading incidents"
+    ],
+    "name": "Watchbox",
+    "state": "loading",
+    "surfaceId": "geoWatchbox-loading"
+  },
+  {
+    "catalogId": "agentspaces-geo",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-geo",
+          "surfaceId": "geoWatchbox-error"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "alerts",
+                "harbour"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "actions": [
+                {
+                  "label": "Acknowledge",
+                  "name": "acknowledge"
+                }
+              ],
+              "component": "Watchbox",
+              "fields": [
+                "note"
+              ],
+              "id": "alerts",
+              "kind": "incident*",
+              "label": "incidents",
+              "map": "harbour",
+              "path": "/incidents"
+            },
+            {
+              "component": "GeoMap",
+              "home": {
+                "center": [
+                  -3,
+                  53.4
+                ],
+                "zoom": 12
+              },
+              "id": "harbour",
+              "layers": [
+                {
+                  "kind": "area.berth",
+                  "label": "Berths",
+                  "path": "/berths"
+                },
+                {
+                  "cluster": {
+                    "below": 9
+                  },
+                  "kind": "track.ship*",
+                  "label": "Ships",
+                  "path": "/ships",
+                  "style": {
+                    "icon": "ship"
+                  }
+                }
+              ]
+            }
+          ],
+          "surfaceId": "geoWatchbox-error"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "geoWatchbox-error",
+          "value": {
+            "berths": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    [
+                      [
+                        -3.01,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.4
+                      ]
+                    ]
+                  ],
+                  "type": "Polygon"
+                },
+                "id": "berth4",
+                "kind": "area.berth",
+                "label": "Berth 4",
+                "properties": {},
+                "schemaVersion": 1,
+                "style": {
+                  "fill": "#29261e",
+                  "opacity": 0.6,
+                  "stroke": "#9a8139"
+                },
+                "type": "Feature"
+              }
+            ],
+            "berthsTotal": 1,
+            "incidents": "not a list",
+            "ships": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3.0123,
+                    53.4087
+                  ],
+                  "type": "Point"
+                },
+                "id": "ship217",
+                "kind": "track.ship.cargo",
+                "label": "MV Northgate",
+                "properties": {
+                  "destination": "Berth 4",
+                  "mmsi": "235012345",
+                  "speed_kn": 11.2
+                },
+                "schemaVersion": 1,
+                "severity": "info",
+                "style": {
+                  "heading": 74
+                },
+                "type": "Feature"
+              },
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3.05,
+                    53.45
+                  ],
+                  "type": "Point"
+                },
+                "id": "ship340",
+                "kind": "track.ship.tanker",
+                "label": "Saint Brendan",
+                "properties": {
+                  "mmsi": "235099876",
+                  "speed_kn": 0.4
+                },
+                "schemaVersion": 1,
+                "severity": "warning",
+                "style": {},
+                "type": "Feature"
+              }
+            ],
+            "shipsTotal": 2
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Unavailable",
+      "/incidents"
+    ],
+    "name": "Watchbox",
+    "state": "error",
+    "surfaceId": "geoWatchbox-error"
+  },
+  {
+    "catalogId": "agentspaces-geo",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-geo",
+          "surfaceId": "geoLayerMenu"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "layers",
+                "harbour"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "component": "LayerMenu",
+              "id": "layers",
+              "map": "harbour"
+            },
+            {
+              "component": "GeoMap",
+              "home": {
+                "center": [
+                  -3,
+                  53.4
+                ],
+                "zoom": 12
+              },
+              "id": "harbour",
+              "layers": [
+                {
+                  "kind": "area.berth",
+                  "label": "Berths",
+                  "path": "/berths"
+                },
+                {
+                  "cluster": {
+                    "below": 9
+                  },
+                  "kind": "track.ship*",
+                  "label": "Ships",
+                  "path": "/ships",
+                  "style": {
+                    "icon": "ship"
+                  }
+                }
+              ]
+            }
+          ],
+          "surfaceId": "geoLayerMenu"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "geoLayerMenu",
+          "value": {
+            "berths": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    [
+                      [
+                        -3.01,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.4
+                      ]
+                    ]
+                  ],
+                  "type": "Polygon"
+                },
+                "id": "berth4",
+                "kind": "area.berth",
+                "label": "Berth 4",
+                "properties": {},
+                "schemaVersion": 1,
+                "style": {
+                  "fill": "#29261e",
+                  "opacity": 0.6,
+                  "stroke": "#9a8139"
+                },
+                "type": "Feature"
+              }
+            ],
+            "berthsTotal": 1,
+            "ships": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3.0123,
+                    53.4087
+                  ],
+                  "type": "Point"
+                },
+                "id": "ship217",
+                "kind": "track.ship.cargo",
+                "label": "MV Northgate",
+                "properties": {
+                  "destination": "Berth 4",
+                  "mmsi": "235012345",
+                  "speed_kn": 11.2
+                },
+                "schemaVersion": 1,
+                "severity": "info",
+                "style": {
+                  "heading": 74
+                },
+                "type": "Feature"
+              },
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3.05,
+                    53.45
+                  ],
+                  "type": "Point"
+                },
+                "id": "ship340",
+                "kind": "track.ship.tanker",
+                "label": "Saint Brendan",
+                "properties": {
+                  "mmsi": "235099876",
+                  "speed_kn": 0.4
+                },
+                "schemaVersion": 1,
+                "severity": "warning",
+                "style": {},
+                "type": "Feature"
+              }
+            ],
+            "shipsTotal": 2
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Layers",
+      "Ships",
+      "Berths"
+    ],
+    "name": "LayerMenu",
+    "state": "full",
+    "surfaceId": "geoLayerMenu"
+  },
+  {
+    "catalogId": "agentspaces-geo",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-geo",
+          "surfaceId": "geoLayerMenu-empty"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "layers",
+                "harbour"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "component": "LayerMenu",
+              "id": "layers",
+              "map": "harbour"
+            },
+            {
+              "component": "GeoMap",
+              "home": {
+                "center": [
+                  -3,
+                  53.4
+                ],
+                "zoom": 12
+              },
+              "id": "harbour",
+              "layers": [
+                {
+                  "kind": "area.berth",
+                  "label": "Berths",
+                  "path": "/berths"
+                },
+                {
+                  "cluster": {
+                    "below": 9
+                  },
+                  "kind": "track.ship*",
+                  "label": "Ships",
+                  "path": "/ships",
+                  "style": {
+                    "icon": "ship"
+                  }
+                }
+              ]
+            }
+          ],
+          "surfaceId": "geoLayerMenu-empty"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "geoLayerMenu-empty",
+          "value": {
+            "berths": [],
+            "berthsTotal": 0,
+            "ships": [],
+            "shipsTotal": 0
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Layers",
+      "Ships",
+      "Berths",
+      "No feature yet"
+    ],
+    "name": "LayerMenu",
+    "state": "empty",
+    "surfaceId": "geoLayerMenu-empty"
+  },
+  {
+    "catalogId": "agentspaces-geo",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-geo",
+          "surfaceId": "geoLayerMenu-loading"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "layers",
+                "harbour"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "component": "LayerMenu",
+              "id": "layers",
+              "map": "harbour"
+            },
+            {
+              "component": "GeoMap",
+              "home": {
+                "center": [
+                  -3,
+                  53.4
+                ],
+                "zoom": 12
+              },
+              "id": "harbour",
+              "layers": [
+                {
+                  "kind": "area.berth",
+                  "label": "Berths",
+                  "path": "/berths"
+                },
+                {
+                  "cluster": {
+                    "below": 9
+                  },
+                  "kind": "track.ship*",
+                  "label": "Ships",
+                  "path": "/ships",
+                  "style": {
+                    "icon": "ship"
+                  }
+                }
+              ]
+            }
+          ],
+          "surfaceId": "geoLayerMenu-loading"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "geoLayerMenu-loading",
+          "value": {}
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Layers",
+      "Loading"
+    ],
+    "name": "LayerMenu",
+    "state": "loading",
+    "surfaceId": "geoLayerMenu-loading"
+  },
+  {
+    "catalogId": "agentspaces-geo",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-geo",
+          "surfaceId": "geoLayerMenu-error"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "layers",
+                "harbour"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "component": "LayerMenu",
+              "id": "layers",
+              "map": "harbour"
+            },
+            {
+              "component": "GeoMap",
+              "home": {
+                "center": [
+                  -3,
+                  53.4
+                ],
+                "zoom": 12
+              },
+              "id": "harbour",
+              "layers": [
+                {
+                  "kind": "area.berth",
+                  "label": "Berths",
+                  "path": "/berths"
+                },
+                {
+                  "cluster": {
+                    "below": 9
+                  },
+                  "kind": "track.ship*",
+                  "label": "Ships",
+                  "path": "/ships",
+                  "style": {
+                    "icon": "ship"
+                  }
+                }
+              ]
+            }
+          ],
+          "surfaceId": "geoLayerMenu-error"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "geoLayerMenu-error",
+          "value": {
+            "berths": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    [
+                      [
+                        -3.01,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.4
+                      ]
+                    ]
+                  ],
+                  "type": "Polygon"
+                },
+                "id": "berth4",
+                "kind": "area.berth",
+                "label": "Berth 4",
+                "properties": {},
+                "schemaVersion": 1,
+                "style": {
+                  "fill": "#29261e",
+                  "opacity": 0.6,
+                  "stroke": "#9a8139"
+                },
+                "type": "Feature"
+              }
+            ],
+            "berthsTotal": 1,
+            "ships": "not a list"
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Layers",
+      "Unavailable",
+      "/ships"
+    ],
+    "name": "LayerMenu",
+    "state": "error",
+    "surfaceId": "geoLayerMenu-error"
   }
 ];

@@ -7,8 +7,8 @@
 // Row. This package draws agentspaces-viz; a host registers the components of its own catalogs, and the open
 // components it still draws (HOSTED), with registerComponents. A catalog may draw another's components beside its own
 // (an old id, such as a platform's alias of agentspaces-viz), named with registerAlias.
-import { Catalog, type ComponentApi } from '@a2ui/web_core/v0_9';
-import { basicCatalog } from '@a2ui/web_core/v0_9/basic_catalog';
+import { Catalog, type ComponentApi } from '@a2ui/web_core/v1_0';
+import { basicCatalog } from '@a2ui/web_core/v1_0';
 import { OPEN_IMPLEMENTATIONS } from '../generated/registry';
 import type { Implementation } from './implementation';
 
@@ -17,7 +17,9 @@ const registered: Record<string, Record<string, Implementation>> = Object.fromEn
  * A surface on agentspaces-widgets draws the components of agentspaces-viz beside its own: the
  * application components sit in the open frame, a TitleBar over a Split of a FileTree, a FilePreview and a Chat.
  */
-const aliases: Record<string, string[]> = { 'agentspaces-widgets': ['agentspaces-viz'] };
+// a surface on agentspaces-geo draws both beside the map: the chat, the file tree and the charts its windows hold
+// (srad/agentspaces-geo.md §3.3)
+const aliases: Record<string, string[]> = { 'agentspaces-widgets': ['agentspaces-viz'], 'agentspaces-geo': ['agentspaces-viz', 'agentspaces-widgets'] };
 let built: Catalog<ComponentApi>[] | undefined;
 
 /** The A2UI basic catalog's id. */

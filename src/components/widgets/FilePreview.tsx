@@ -72,7 +72,7 @@ function Body({ file, kind, ctx, csvRows }: { file: FileRow; kind: ReturnType<ty
 
 export const FilePreview = define<FilePreviewProps>('FilePreview', ({ props, ctx }) => {
   const literal = typeof props.file === 'string' ? props.file : undefined;
-  const path = props.file && typeof props.file === 'object' ? (props.file as { path?: string }).path : undefined;
+  const path = props.file && typeof props.file === 'object' ? (props.file as { '@path'?: string })['@path'] : undefined;
   const bound = useData<unknown>(ctx, path);
   const id = literal ?? (bound === undefined || bound === null ? '' : String(bound));
   const raw = useData<unknown>(ctx, typeof props.files === 'string' ? props.files : '/files');

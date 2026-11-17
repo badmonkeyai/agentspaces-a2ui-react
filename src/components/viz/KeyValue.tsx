@@ -22,7 +22,8 @@ export const KeyValue = define<KeyValueProps>('KeyValue', ({ props, ctx }) => {
     : object && typeof object === 'object' ? Object.entries(object as Record<string, unknown>).filter(([, v]) => v === null || typeof v !== 'object').map(([k, v]) => ({ label: k, value: v })) : [];
   return (
     <div className="bma-keyvalue" data-component="KeyValue">
-      {props.title ? <h4>{String(props.title)}</h4> : null}
+      {/* h3: one level under the section a page gives a component (an h4 skipped a level, axe's heading-order) */}
+      {props.title ? <h3>{String(props.title)}</h3> : null}
       {items.length ? <dl>{items.map((i, n) => <Item key={n} ctx={ctx} label={i.label} value={i.value} />)}</dl> : <div className="bma-empty">Nothing to show yet.</div>}
     </div>
   );

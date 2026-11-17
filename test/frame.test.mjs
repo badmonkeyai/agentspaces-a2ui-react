@@ -5,9 +5,9 @@ import assert from 'node:assert/strict';
 import { draw, envelope, key, click, mount, React, ui } from './setup.mjs';
 
 const bar = (rows, labels) => envelope('s', [
-  { id: 'bar', component: 'TitleBar', title: 'Workbench', subtitle: 'Claims desk', icon: 'briefcase', status: { from: '/working', labels }, menu: 'bar-menu',
+  { id: 'bar', component: 'TitleBar', title: 'Workbench', subtitle: 'Claims desk', icon: 'briefcase', status: { from: '/working', labels }, menu: 'barMenu',
     actions: [{ id: 'share', label: 'Share', icon: 'share', action: { name: 'share' } }] },
-  { id: 'bar-menu', component: 'Menu', trigger: { kind: 'overflow', label: 'More' }, items: [{ id: 'help', label: 'Help', action: { name: 'help' } }], inner: true },
+  { id: 'barMenu', component: 'Menu', trigger: { kind: 'overflow', label: 'More' }, items: [{ id: 'help', label: 'Help', action: { name: 'help' } }], inner: true },
 ], { working: rows });
 
 test('the status reads the WorkingOn rows in the A2A words', () => {
@@ -44,8 +44,8 @@ test('the first bar on a page claims the page\'s bar and shows the page\'s tools
     claimed = f.claimed;
     return React.createElement(ui.FrameContext.Provider, { value: f.frame },
       f.claimed ? null : React.createElement('header', { id: 'chrome' }, 'Page title'),
-      React.createElement(ui.Surfaces, { envelopes: [...bar([]), { version: 'v0.9.1', createSurface: { surfaceId: 't', catalogId: 'agentspaces-viz' } },
-        { version: 'v0.9.1', updateComponents: { surfaceId: 't', components: [{ id: 'root', component: 'Column', children: ['b2'] }, { id: 'b2', component: 'TitleBar', title: 'Second' }] } }] }));
+      React.createElement(ui.Surfaces, { envelopes: [...bar([]), { version: '1.0', createSurface: { surfaceId: 't', catalogId: 'agentspaces-viz' } },
+        { version: '1.0', updateComponents: { surfaceId: 't', components: [{ id: 'root', component: 'Column', children: ['b2'] }, { id: 'b2', component: 'TitleBar', title: 'Second' }] } }] }));
   }
   const { container, unmount } = await mount(React.createElement(Page));
   assert.equal(claimed, true);
@@ -86,8 +86,8 @@ test('a window has its actions in its header and a toolbar its menu', async () =
   const { container, actions, unmount } = await draw(envelope('s', [
     { id: 'box', component: 'Window', title: 'truck-7 left Depot North', child: 'note', actions: [{ id: 'ack', label: 'Acknowledge', action: { name: 'acknowledge', context: { alert: 'a-1' } } }] },
     { id: 'note', component: 'Text', text: 'Outside its area', inner: true },
-    { id: 'tools', component: 'Toolbar', title: 'Desk', actions: [{ label: 'Refresh', action: 'refresh' }], menu: 'tools-menu' },
-    { id: 'tools-menu', component: 'Menu', trigger: { kind: 'overflow', label: 'More tools' }, items: [{ id: 'x', label: 'Export', action: { name: 'export' } }], inner: true },
+    { id: 'tools', component: 'Toolbar', title: 'Desk', actions: [{ label: 'Refresh', action: 'refresh' }], menu: 'toolsMenu' },
+    { id: 'toolsMenu', component: 'Menu', trigger: { kind: 'overflow', label: 'More tools' }, items: [{ id: 'x', label: 'Export', action: { name: 'export' } }], inner: true },
   ]));
   const head = container.querySelector('.bma-window .head');
   const ack = [...head.querySelectorAll('button')].find(b => b.textContent === 'Acknowledge');
@@ -96,4 +96,23 @@ test('a window has its actions in its header and a toolbar its menu', async () =
   assert.deepEqual(actions.at(-1).context, { id: 'ack', alert: 'a-1' });
   assert.ok(container.querySelector('[role="toolbar"] [data-component="Menu"]'));
   await unmount();
+});
+
+test('a window that appears with its data stays hidden until its path holds a row', async () => {
+  // appearsWith (2026-11-11): data and visualizations arrive on the right as the agents produce them
+  const comps = [
+    { id: 'found', component: 'Window', title: 'How I found it', child: 'note', appearsWith: '/steps' },
+    { id: 'always', component: 'Window', title: 'Documents', child: 'note2' },
+    { id: 'note', component: 'Text', text: 'the steps', inner: true },
+    { id: 'note2', component: 'Text', text: 'the documents', inner: true },
+  ];
+  const empty = await draw(envelope('s', comps, { steps: [] }));
+  assert.equal(empty.container.querySelector('.bma-window[data-window="found"]') ?? [...empty.container.querySelectorAll('.bma-window')].find(w => /How I found it/.test(w.textContent)), undefined, 'hidden while /steps is empty');
+  assert.ok([...empty.container.querySelectorAll('.bma-window')].some(w => /Documents/.test(w.textContent)), 'a window without appearsWith draws as before');
+  await empty.unmount();
+  const full = await draw(envelope('s', comps, { steps: [{ id: 1, template: 'link' }] }));
+  const shown = [...full.container.querySelectorAll('.bma-window')].find(w => /How I found it/.test(w.textContent));
+  assert.ok(shown, 'shown once a row is there');
+  assert.ok(shown.closest('.as-appeared'), 'with the highlight of a new arrival');
+  await full.unmount();
 });

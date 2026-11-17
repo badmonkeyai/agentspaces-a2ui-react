@@ -16,15 +16,15 @@ async function page(initial, tree = {}, extra = []) {
   const actions = [];
   let set;
   const components = [{ id: 'tree', component: 'FileTree', reads: '/files', working: '/working', upload: true, preview: 'preview', chat: 'chat', actions: ['ask', 'download', 'share', 'rename', 'remove'], ...tree },
-    { id: 'preview', component: 'FilePreview', file: { path: '/selected/file' } }, ...extra];
+    { id: 'preview', component: 'FilePreview', file: { '@path': '/selected/file' } }, ...extra];
   const base = [
-    { version: 'v0.9.1', createSurface: { surfaceId: 'wb', catalogId: 'agentspaces-widgets' } },
-    { version: 'v0.9.1', updateComponents: { surfaceId: 'wb', components: [{ id: 'root', component: 'Column', children: components.map(c => c.id) }, ...components] } },
-    { version: 'v0.9.1', updateDataModel: { surfaceId: 'wb', path: '/', value: initial } },
+    { version: '1.0', createSurface: { surfaceId: 'wb', catalogId: 'agentspaces-widgets' } },
+    { version: '1.0', updateComponents: { surfaceId: 'wb', components: [{ id: 'root', component: 'Column', children: components.map(c => c.id) }, ...components] } },
+    { version: '1.0', updateDataModel: { surfaceId: 'wb', path: '/', value: initial } },
   ];
   function Host() { const [env, setEnv] = React.useState(base); set = setEnv; return React.createElement(ui.Surfaces, { envelopes: env, onAction: a => actions.push(a) }); }
   const m = await mount(React.createElement(Host));
-  const push = async value => { await React.act(async () => { set(e => [...e, { version: 'v0.9.1', updateDataModel: { surfaceId: 'wb', path: '/', value } }]); }); };
+  const push = async value => { await React.act(async () => { set(e => [...e, { version: '1.0', updateDataModel: { surfaceId: 'wb', path: '/', value } }]); }); };
   const tree$ = () => m.container.querySelector('[role="tree"]');
   const rows = () => [...m.container.querySelectorAll('[role="treeitem"]')];
   const label = r => r.querySelector('.as-tree-name').textContent;
@@ -57,6 +57,17 @@ test('folders come from the paths, before files and by name, as a tree a keyboar
   await key(p.tree(), 'o');
   assert.equal(p.label(p.active()), 'overspend.md', 'a letter moves to the next row that starts with it');
   assert.equal(JSON.parse(localStorage.getItem('agentspaces-tree-open:wb/tree')).data, true, 'the open folders stay in the browser');
+  await p.unmount();
+});
+
+test('a file the person chose stays in the preview when the feed writes the whole data model again', async () => {
+  localStorage.clear();
+  const p = await page({ files: [q3, readme], working: [] });
+  await click(p.rows().find(r => p.label(r) === 'README.md'));
+  assert.equal(p.container.querySelector('.as-preview-name').textContent, 'README.md');
+  // a root write (the page's stream replayed from createSurface) carries no /selected: the choice is the browser's alone
+  await p.push({ files: [q3, readme, note], working: [] });
+  assert.equal(p.container.querySelector('.as-preview-name')?.textContent, 'README.md', 'the tree put its choice back');
   await p.unmount();
 });
 
@@ -151,10 +162,10 @@ test('FileShare draws through the tree as a flat list with its notice and its at
   ui.uploaders.set('wb', async (file, opts) => { calls.push([file.name, opts.attest]); return { status: 202, body: '{}' }; });
   const actions = [];
   const env = [
-    { version: 'v0.9.1', createSurface: { surfaceId: 'wb', catalogId: 'agentspaces-widgets' } },
-    { version: 'v0.9.1', updateComponents: { surfaceId: 'wb', components: [{ id: 'root', component: 'Column', children: ['share'] },
+    { version: '1.0', createSurface: { surfaceId: 'wb', catalogId: 'agentspaces-widgets' } },
+    { version: '1.0', updateComponents: { surfaceId: 'wb', components: [{ id: 'root', component: 'Column', children: ['share'] },
       { id: 'share', component: 'FileShare', notice: 'Files are kept a week.', attest: 'I have the right to share this' }] } },
-    { version: 'v0.9.1', updateDataModel: { surfaceId: 'wb', path: '/', value: { files: [note, q3] } } },
+    { version: '1.0', updateDataModel: { surfaceId: 'wb', path: '/', value: { files: [note, q3] } } },
   ];
   const m = await mount(React.createElement(ui.Surfaces, { envelopes: env, onAction: a => actions.push(a) }));
   assert.deepEqual([...m.container.querySelectorAll('[role="treeitem"] .as-tree-name')].map(n => n.textContent), ['overspend.md', 'q3-expenses.csv'], 'a flat list by name');

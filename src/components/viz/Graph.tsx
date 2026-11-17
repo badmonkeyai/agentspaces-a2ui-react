@@ -4,16 +4,23 @@
  */
 // agentspaces-viz/Graph: nodes and edges bound to the data model, laid out in columns (one column per `column` field, as the
 // console's canvas), as a tree (layers by depth from the roots), or by force (a deterministic spring layout); drawn as
-// SVG blocks and arrows in the look's colours; a node click dispatches the node action.
+// SVG blocks and arrows in the look's colours; a node click dispatches the node action. The drawing never grows past its
+// natural width, so its text stays at the stylesheet's size in a wide panel; an edge's label shows only while one of its
+// two nodes is hovered, focused or lit (class `on` on the edge; the text stays in the page, at opacity 0, for screen readers and tests).
+// Edge rows may be lit too (AF-10): once any is, the data names the path, so an edge lights only when it is lit, hovered,
+// or touches the hovered or focused node, and the lit nodes no longer light the edges that leave the path. A lit node's
+// name and a lit edge's text add ", on the path" for a screen reader (AF-13).
 import { useMemo, useState } from 'react';
 import { define, useRows } from '../../renderer/implementation';
 import { useLook } from '../../look/provider';
 import type { GraphProps } from '../../generated/props';
 
 type Node = { id: string; title?: string; sub?: string; column?: string; kind?: string; lit?: boolean; [k: string]: unknown };
-type Edge = { from: string; to: string; label?: string; [k: string]: unknown };
+type Edge = { from: string; to: string; label?: string; lit?: boolean; [k: string]: unknown };
 interface Placed { node: Node; x: number; y: number; w: number; h: number }
 const COL_W = 180, GAP = 60, PAD = 24, TOP = 40, NODE_H = 44, ROW_GAP = 14;
+/** What a lit node's name and a lit edge's text add for a screen reader. */
+const ON_PATH = ', on the path';
 
 function columnsLayout(nodes: Node[], columns: { key: string; label?: string }[]): { placed: Placed[]; width: number; height: number; bands: { x: number; w: number; label: string }[] } {
   const keys = columns.length ? columns.map(c => c.key) : [...new Set(nodes.map(n => String(n.column ?? n.kind ?? '')))];
@@ -62,22 +69,35 @@ export const Graph = define<GraphProps>('Graph', ({ props, ctx }) => {
   const edges = useRows<Edge>(ctx, props.edges);
   const { tokens } = useLook();
   const [lit, setLit] = useState<string | null>(null);
+  const [hover, setHover] = useState<string | null>(null);
+  // focus is kept apart from the pointer's hover, so a pointer leaving a clicked or tabbed-to node keeps its edges lit
+  const [focus, setFocus] = useState<string | null>(null);
+  const [hoverEdge, setHoverEdge] = useState<number | null>(null);
   const layout = useMemo(() => props.layout === 'force' ? forceLayout(nodes, edges) : props.layout === 'tree' ? treeLayout(nodes, edges) : columnsLayout(nodes, (props.columns ?? []).filter(c => c.key).map(c => ({ key: String(c.key), label: c.label }))), [nodes, edges, props.layout, JSON.stringify(props.columns ?? [])]);
   const at = new Map(layout.placed.map(p => [p.node.id, p]));
-  if (!nodes.length) return <div className="bma-empty" data-component="Graph">No node yet.</div>;
+  if (!nodes.length) return <div className="as-empty" data-component="Graph"><span className="glyph" aria-hidden="true">◇</span><b>No graph yet</b><p>No node yet.</p></div>;
   const truncate = (s: unknown, n: number) => { const t = String(s ?? ''); return t.length > n ? t.slice(0, n - 1) + '…' : t; };
+  const shown = new Set([hover, focus, lit, ...layout.placed.filter(p => p.node.lit).map(p => p.node.id)].filter((v): v is string => !!v));
+  // a path in the data (any edge row lit): the lit edges, the hovered one, and those touching the hovered or focused node
+  const path = edges.some(e => e.lit === true);
+  const touches = (e: Edge, id: string | null) => !!id && (e.from === id || e.to === id);
+  const edgeOn = (e: Edge, i: number) => (path ? e.lit === true || hoverEdge === i || touches(e, hover) || touches(e, focus) : shown.has(e.from) || shown.has(e.to));
   return (
     <div className="bma-graph" data-component="Graph" data-layout={props.layout ?? 'columns'}>
-      <svg viewBox={`0 0 ${layout.width} ${layout.height}`} role="group" aria-label="graph">
+      <svg viewBox={`0 0 ${layout.width} ${layout.height}`} role="group" aria-label="graph" style={{ maxWidth: layout.width }}>
         <defs><marker id="bma-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="var(--bma-color-ink-muted)" /></marker></defs>
         {layout.bands.map(b => <g key={b.label} className="column"><rect x={b.x} y={TOP - 4} width={b.w} height={layout.height - TOP - 6} rx={6} /><text x={b.x + 8} y={TOP - 10}>{b.label}</text></g>)}
         {edges.map((e, i) => { const a = at.get(e.from), b = at.get(e.to); if (!a || !b) return null; const x1 = a.x + a.w, y1 = a.y + a.h / 2, x2 = b.x, y2 = b.y + b.h / 2; const same = Math.abs(a.x - b.x) < 1;
           const d = same ? `M${a.x + a.w / 2} ${a.y + a.h} C ${a.x + a.w / 2} ${(a.y + b.y) / 2 + a.h / 2}, ${b.x + b.w / 2} ${(a.y + b.y) / 2 + a.h / 2}, ${b.x + b.w / 2} ${b.y}` : `M${x1} ${y1} C ${(x1 + x2) / 2} ${y1}, ${(x1 + x2) / 2} ${y2}, ${x2} ${y2}`;
-          return <g key={i} className="edge"><path d={d} markerEnd="url(#bma-arrow)" />{e.label ? <text x={(x1 + x2) / 2} y={(y1 + y2) / 2 - 4} textAnchor="middle">{String(e.label)}</text> : null}</g>; })}
+          const on = edgeOn(e, i); const onPath = e.lit === true;
+          return <g key={i} className={'edge' + (on ? ' on' : '') + (onPath ? ' lit' : '')} onPointerEnter={() => setHoverEdge(i)} onPointerLeave={() => setHoverEdge(h => (h === i ? null : h))}>
+            <path d={d} markerEnd="url(#bma-arrow)" />{e.label ? <text x={(x1 + x2) / 2} y={(y1 + y2) / 2 - 4} textAnchor="middle" opacity={on ? 1 : 0}>{String(e.label)}</text> : null}
+            {onPath ? <text className="as-path-note" x={(x1 + x2) / 2} y={(y1 + y2) / 2 - 4} opacity={0} pointerEvents="none">{e.label ? ON_PATH : ON_PATH.slice(2)}</text> : null}</g>; })}
         {layout.placed.map(p => { const on = lit === p.node.id || !!p.node.lit; const hue = tokens.color.categorical[Math.abs(hash(String(p.node.column ?? p.node.kind ?? ''))) % 8];
           return <g key={p.node.id} className={'node' + (on ? ' lit' : '')} transform={`translate(${p.x},${p.y})`} style={{ cursor: props.nodeAction ? 'pointer' : 'default' }}
-            onClick={() => { setLit(p.node.id); ctx.dispatch(props.nodeAction, { id: p.node.id, node: p.node }); }} tabIndex={0} role={props.nodeAction ? 'button' : undefined} aria-label={String(p.node.title ?? p.node.id)}>
-            <rect width={p.w} height={p.h} rx={4} /><rect width={4} height={p.h} rx={2} fill={hue} />
+            onClick={() => { setLit(p.node.id); ctx.dispatch(props.nodeAction, { id: p.node.id, node: p.node }); }} tabIndex={0} role={props.nodeAction ? 'button' : undefined} aria-label={String(p.node.title ?? p.node.id) + (p.node.lit ? ON_PATH : '')}
+            onPointerEnter={() => setHover(p.node.id)} onPointerLeave={() => setHover(h => (h === p.node.id ? null : h))} onFocus={() => setFocus(p.node.id)} onBlur={() => setFocus(f => (f === p.node.id ? null : f))}>
+            <rect width={p.w} height={p.h} rx={6} /><rect width={4} height={p.h} rx={2} fill={hue} />
             <text x={12} y={18}>{truncate(p.node.title ?? p.node.id, 22)}</text>{p.node.sub ? <text className="sub" x={12} y={34}>{truncate(p.node.sub, 28)}</text> : null}
             <title>{String(p.node.title ?? p.node.id)}</title></g>; })}
       </svg>

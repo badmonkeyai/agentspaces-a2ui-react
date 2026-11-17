@@ -1,6 +1,6 @@
 # @agentspaces/a2ui-react
 
-**The open React renderer of the AgentSpaces A2UI catalogs**, from Bad Monkey AI. It draws [A2UI](https://a2ui.org) v0.9.1 surfaces over the basic catalog and the two open catalogs of [agentspaces-a2ui](https://github.com/badmonkeyai/agentspaces-a2ui), `agentspaces-viz` and `agentspaces-widgets`: charts, tables, maps, a chat, a file tree, and the frame of a page (a title bar, menus, and panel splits). It also ships the split and the tree as custom elements for a page without React. It is for web developers who draw the surfaces their agents write.
+**The open React renderer of the AgentSpaces A2UI catalogs**, from Bad Monkey AI. It draws [A2UI](https://a2ui.org) 1.0 surfaces over the basic catalog, the two open catalogs of [agentspaces-a2ui](https://github.com/badmonkeyai/agentspaces-a2ui), `agentspaces-viz` and `agentspaces-widgets`, and the geospatial catalog of [agentspaces-a2ui-geo](https://github.com/badmonkeyai/agentspaces-a2ui-geo), `agentspaces-geo`: charts, tables, maps, a chat, a file tree, and the frame of a page (a title bar, menus, and panel splits). It also ships the split and the tree as custom elements for a page without React. It is for web developers who draw the surfaces their agents write.
 
 ## Quick start: draw a title bar over a split
 
@@ -22,8 +22,8 @@ import { Surfaces, CommandPalette } from '@agentspaces/a2ui-react';
 import '@agentspaces/a2ui-react/style.css';
 
 const envelopes = [
-  { version: 'v0.9.1', createSurface: { surfaceId: 'desk', catalogId: 'agentspaces-viz' } },
-  { version: 'v0.9.1', updateComponents: { surfaceId: 'desk', components: [
+  { version: '1.0', createSurface: { surfaceId: 'desk', catalogId: 'agentspaces-viz' } },
+  { version: '1.0', updateComponents: { surfaceId: 'desk', components: [
     { id: 'root', component: 'Column', children: ['bar', 'main'] },
     { id: 'bar', component: 'TitleBar', title: 'Refund desk', status: { from: '/working' },
       actions: [{ id: 'refresh', label: 'Refresh', action: { name: 'refresh' } }] },
@@ -32,7 +32,7 @@ const envelopes = [
     { id: 'open', component: 'Stat', label: 'Open refunds', value: '/open' },
     { id: 'note', component: 'Prose', text: '/note' },
   ] } },
-  { version: 'v0.9.1', updateDataModel: { surfaceId: 'desk', path: '/', value: { open: 3, note: 'Three refunds **wait** for you.', working: [] } } },
+  { version: '1.0', updateDataModel: { surfaceId: 'desk', path: '/', value: { open: 3, note: 'Three refunds **wait** for you.', working: [] } } },
 ];
 const onAction = a => console.log('action', a.name, 'from', a.sourceComponentId);
 createRoot(document.getElementById('app')).render(h(Fragment, null,
@@ -60,10 +60,10 @@ npx esbuild page.js --bundle --format=esm --splitting --outdir=out --external:ma
 
 ## What it is
 
-- `Surfaces`: the renderer of a list of envelopes over the A2UI basic catalog, `agentspaces-viz`, and `agentspaces-widgets`; `registerComponents` and `registerAlias` let a host add its own catalogs.
-- `appendEnvelope(log, envelope)`: the log a page keeps for `Surfaces`, with a data write replacing the earlier writes it covers (`SUPERSEDED` holds their slots), so a page open for hours keeps what it draws.
+- `Surfaces`: the renderer of a list of envelopes over the A2UI basic catalog, `agentspaces-viz`, `agentspaces-widgets` and `agentspaces-geo`. Actions go to `onAction`. An action that calls one of the agent's functions (A2UI 1.0's `callAgentFunction`) goes to `onFunctionCall`, its answer arrives among the envelopes, and a call with no answer in time is reported. `registerComponents` and `registerAlias` let a host add its own catalogs. `appendEnvelope(log, envelope)` keeps the log a page feeds it: a data write replaces the earlier writes it covers, so a page open for hours keeps what it draws.
 - The frame of a page: `TitleBar`, `Menu` and `Split` (the WAI-ARIA Menu Button, Menu and Window Splitter patterns), `Pages` for a Publish's `navigation` and `layout`, and `CommandPalette` on Ctrl or Cmd and K.
 - The application components: `Chat` (progress, safe Markdown answers, attachment and citation chips, retry, stop, feedback), `FileTree` (the WAI-ARIA Tree View keyboard, badges, upload, a context menu) and `FilePreview` (text, Markdown, CSV, PNG, JPEG, and PDF in a sandboxed frame).
+- The geospatial components of `agentspaces-geo`: `GeoMap` (GeoFeature layers coloured by kind and severity, clusters, a selection, a view kept per app, a time slider, and N and Shift+N to step through the features from the keyboard), `FeatureCard`, `FeatureSearch`, `Watchbox` and `LayerMenu`. They load on first use (`loadGeo`). A basemap is a name, and a host adds names with `registerBasemap`.
 - `<agentspaces-split>` and `<agentspaces-tree>` in `./elements`, the look and feel as CSS variables, and `Gallery`, every golden surface with its code.
 
 ## Add it to your build
@@ -72,7 +72,7 @@ npx esbuild page.js --bundle --format=esm --splitting --outdir=out --external:ma
 npm install @agentspaces/a2ui-react@0.6.0
 ```
 
-The peers are React 18 or 19, `@a2ui/react` and `@a2ui/web_core` 0.15.0, `markdown-it` 14, and `zod` 3. A page with a `Map` adds `maplibre-gl` 6 and the four `@deck.gl` 9 packages; a page without one marks them external, as the quick start does. [About the renderer](docs/about.md) lists what it draws and what it leaves to a host, and [Building](docs/building.md) builds from a clone.
+The peers are React 18 or 19, `@a2ui/react` and `@a2ui/web_core` 0.15.0, `markdown-it` 14, and `zod` 3. A page with a `Map` or a `GeoMap` adds `maplibre-gl` 6 and the four `@deck.gl` 9 packages. A `GraphView` past 500 nodes draws with `@deck.gl/core` and `@deck.gl/layers`, and draws SVG where they are missing. A page without them marks them external, as the quick start does. [About the renderer](docs/about.md) lists what it draws and what it leaves to a host, and [Building](docs/building.md) builds from a clone.
 
 ## Where to read next
 

@@ -8,7 +8,7 @@ import { draw, envelope, key, click, React } from './setup.mjs';
 
 const items = [
   { id: 'new-chat', label: 'New chat', shortcut: 'Ctrl+Shift+O', action: { name: 'chat.new' } },
-  { id: 'dark', label: 'Dark mode', checked: { path: '/view/dark' }, action: { name: 'view.dark' } },
+  { id: 'dark', label: 'Dark mode', checked: { '@path': '/view/dark' }, action: { name: 'view.dark' } },
   { id: 'export', label: 'Export', disabled: true, action: { name: 'export' } },
   { id: 'share', label: 'Share', items: [{ id: 'copy-link', label: 'Copy link', action: { name: 'share.link' } }, { id: 'email', label: 'Email', action: { name: 'share.email' } }] },
   { id: 'help', label: 'Help', group: 'about', action: { name: 'help' } },

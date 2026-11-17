@@ -24,7 +24,7 @@ export const Notification = define<NotificationProps>('Notification', ({ props, 
     <div className="bma-notifications" data-component="Notification">
       {groups.map(([k, list]) => (
         <div key={k} className="bma-notification-group">
-          {k && groupBy !== 'none' && (groupBy !== 'incident' || list.length > 1) ? <h4>{groupBy} {k} · {list.length}</h4> : null}
+          {k && groupBy !== 'none' && (groupBy !== 'incident' || list.length > 1) ? <h3>{groupBy} {k} · {list.length}</h3> : null}
           {list.map((i, n) => { const sev = String(i.severity ?? 'warning');
             return <div key={i.id ?? n} className={`bma-notification bma-status-${sev}`} aria-live="polite">
               <span className={`bma-status bma-status-${sev} bma-small`}>{sev}</span>

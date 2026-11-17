@@ -3,7 +3,7 @@
 // rail and the rail opens it; the sizes stay in the browser under the persist key and come back on the next draw.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { draw, envelope, key, click } from './setup.mjs';
+import { React, ui, mount, draw, envelope, key, click } from './setup.mjs';
 
 const panes = [{ id: 'left', child: 'a', size: 0.25, collapsible: true, label: 'Files' }, { id: 'mid', child: 'b', size: 0.45, label: 'Preview' }, { id: 'right', child: 'c', size: 0.3, collapsible: true, label: 'Chat' }];
 const surface = (persist, orientation = 'horizontal') => envelope('s', [{ id: 'main', component: 'Split', orientation, persist, panes },
@@ -111,6 +111,50 @@ test('the panes stack below their width', async () => {
   assert.equal(typeof AgentSpacesSplit, 'function', 'the element alone, for a page without React');
 });
 
+// A split whose stack-below arrives after it is connected (a framework that sets attributes after the append) is judged
+// at once: no resize may follow to make its ResizeObserver do it.
+test('a stack-below set on a connected split stacks it at once', async () => {
+  localStorage.clear();
+  await import('../dist/elements.js');
+  const el = document.createElement('agentspaces-split');
+  el.setAttribute('panes', JSON.stringify(panes.slice(0, 2)));
+  el.getBoundingClientRect = () => ({ width: 500, height: 400, top: 0, left: 0, right: 500, bottom: 400 });
+  document.body.appendChild(el);
+  assert.ok(!el.hasAttribute('stacked'), 'no threshold yet: side by side');
+  el.setAttribute('stack-below', '720');
+  assert.ok(el.hasAttribute('stacked'), 'narrower than the new threshold: stacked without a resize');
+  el.setAttribute('stack-below', '0');
+  assert.ok(!el.hasAttribute('stacked'), 'a threshold of 0 never stacks');
+  el.remove();
+});
+
+// The workbench's panes ask 180 + 320 + 300 px side by side, more than the 600 px a narrowed split has. Stacked, each pane
+// takes the whole width, so the minimums from the wide layout are cleared, and set again when the split widens.
+test('stacking clears the panes\' minimums and widening sets them again', async () => {
+  localStorage.clear();
+  await import('../dist/elements.js');
+  const withMins = [{ id: 'l', size: 0.25, min: 180, collapsible: true, label: 'Files' }, { id: 'm', size: 0.45, min: 320, label: 'Preview' }, { id: 'r', size: 0.3, min: 300, collapsible: true, label: 'Chat' }];
+  const el = document.createElement('agentspaces-split');
+  el.setAttribute('panes', JSON.stringify(withMins));
+  el.setAttribute('stack-below', '720');
+  let width = 1200;
+  el.getBoundingClientRect = () => ({ width, height: 400, top: 0, left: 0, right: width, bottom: 400 });
+  document.body.appendChild(el);
+  const mins = () => [...el.shadowRoot.querySelectorAll('.pane')].map(p => p.style.minWidth);
+  assert.deepEqual(mins(), ['180px', '320px', '300px'], 'side by side: each pane keeps its minimum');
+  width = 600;
+  el.stack();   // what the element's ResizeObserver calls when the browser lays the new width out; happy-dom lays nothing out
+  assert.ok(el.hasAttribute('stacked'));
+  assert.deepEqual(mins(), ['', '', ''], 'stacked: no minimum from the wide layout');
+  el.setAttribute('persist', 'other');   // a rebuild while stacked keeps them cleared
+  assert.deepEqual(mins(), ['', '', '']);
+  width = 1200;
+  el.stack();
+  assert.ok(!el.hasAttribute('stacked'));
+  assert.deepEqual(mins(), ['180px', '320px', '300px'], 'side by side again: the minimums are back');
+  el.remove();
+});
+
 test('dragging a separator moves it once per frame and keeps the result', async () => {
   localStorage.clear();
   const { container, unmount } = await draw(surface('drag'));
@@ -122,5 +166,48 @@ test('dragging a separator moves it once per frame and keeps the result', async 
   seps[0].dispatchEvent(new PointerEvent('pointerup', { clientX: 350, pointerId: 1, bubbles: true }));
   assert.ok(Math.abs(el.paneSizes[0] - before - 0.1) < 1e-9, 'a hundred pixels of a thousand');
   assert.ok(localStorage.getItem('agentspaces-split:s/drag'), 'kept on release');
+  await unmount();
+});
+
+// A host may hand Surfaces the same surface again (createSurface, updateComponents, the model as first drawn) whenever
+// one path moves. The split a person narrowed must stay the element it was, with its inline width and the 'stacked' its
+// ResizeObserver set: a page check that reads the split again would otherwise meet a new, wide one.
+test('the surface sent again leaves the split element, its width and its stacked state alone', async () => {
+  localStorage.clear();
+  const components = [
+    { id: 'root', component: 'Column', children: ['split'] },
+    { id: 'split', component: 'Split', persist: 'desk', stackBelow: 720, panes: [{ id: 'l', child: 'tree', size: 0.25, min: 180, collapsible: true, label: 'Files' }, { id: 'm', child: 'preview', size: 0.45, min: 320, label: 'Preview' }, { id: 'r', child: 'chat', size: 0.3, min: 300, collapsible: true, label: 'Chat' }] },
+    { id: 'tree', component: 'FileTree', reads: '/files', label: 'Files', preview: 'preview', chat: 'chat', actions: ['ask', 'rename'] },
+    { id: 'preview', component: 'FilePreview', file: { '@path': '/selected/file' }, files: '/files' },
+    { id: 'chat', component: 'Chat', agent: 'desk', key: 'main', reads: '/conversations', progress: '/progress', files: '/files', attach: true },
+  ];
+  const page = [
+    { version: '1.0', createSurface: { surfaceId: 'desk', catalogId: 'agentspaces-widgets' } },
+    { version: '1.0', updateComponents: { surfaceId: 'desk', components } },
+    { version: '1.0', updateDataModel: { surfaceId: 'desk', path: '/', value: { files: [], progress: [], conversations: [] } } },
+  ];
+  const file = i => ({ id: 'f' + i, name: `n${i}.txt`, mediaType: 'text/plain', bytes: 10, root: 'r' + i, by: 'ana', sha256: 'sha256:0' + i });
+  let set;
+  function Host() { const [env, setEnv] = React.useState(page); set = setEnv; return React.createElement(ui.Surfaces, { envelopes: env }); }
+  const { container, unmount } = await mount(React.createElement(Host));
+  const el = container.querySelector('agentspaces-split');
+  const shadow = el.shadowRoot.firstElementChild;
+  el.toggle(0);
+  el.style.width = '600px';
+  el.setAttribute('stacked', '');   // what its ResizeObserver sets in a browser at 600 px; happy-dom lays nothing out
+  const written = [];
+  new MutationObserver(l => l.forEach(m => written.push(m.attributeName))).observe(el, { attributes: true });
+  for (let i = 0; i < 3; i++) {
+    await React.act(async () => { set(e => [...e, ...page, { version: '1.0', updateDataModel: { surfaceId: 'desk', path: '/files', value: [file(1), file(i + 2)] } }]); });
+    await React.act(async () => { await new Promise(r => setTimeout(r, 10)); });
+  }
+  const now = container.querySelector('agentspaces-split');
+  assert.equal(now, el, 'the same element');
+  assert.equal(now.style.width, '600px', 'its inline width kept');
+  assert.ok(now.hasAttribute('stacked'), 'still stacked');
+  assert.equal(now.shadowRoot.firstElementChild, shadow, 'its panes not built again');
+  assert.deepEqual(written, [], 'no attribute written on it');
+  assert.deepEqual(now.paneCollapsed, [true, false, false], 'the pane the person folded stays folded');
+  assert.equal(container.querySelectorAll('[role="treeitem"]').length, 2, 'the moved path drew');
   await unmount();
 });

@@ -8,8 +8,8 @@ test('the quick start draws a title bar over a split and hears the button', asyn
   // ---- the README's code, from here
   const { Surfaces, CommandPalette } = ui;
   const envelopes = [
-    { version: 'v0.9.1', createSurface: { surfaceId: 'desk', catalogId: 'agentspaces-viz' } },
-    { version: 'v0.9.1', updateComponents: { surfaceId: 'desk', components: [
+    { version: '1.0', createSurface: { surfaceId: 'desk', catalogId: 'agentspaces-viz' } },
+    { version: '1.0', updateComponents: { surfaceId: 'desk', components: [
       { id: 'root', component: 'Column', children: ['bar', 'main'] },
       { id: 'bar', component: 'TitleBar', title: 'Refund desk', status: { from: '/working' },
         actions: [{ id: 'refresh', label: 'Refresh', action: { name: 'refresh' } }] },
@@ -18,7 +18,7 @@ test('the quick start draws a title bar over a split and hears the button', asyn
       { id: 'open', component: 'Stat', label: 'Open refunds', value: '/open' },
       { id: 'note', component: 'Prose', text: '/note' },
     ] } },
-    { version: 'v0.9.1', updateDataModel: { surfaceId: 'desk', path: '/', value: { open: 3, note: 'Three refunds **wait** for you.', working: [] } } },
+    { version: '1.0', updateDataModel: { surfaceId: 'desk', path: '/', value: { open: 3, note: 'Three refunds **wait** for you.', working: [] } } },
   ];
   const actions = [];
   const page = React.createElement(React.Fragment, null,

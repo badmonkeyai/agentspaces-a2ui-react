@@ -16,6 +16,23 @@ export interface ChartProps {
   [extra: string]: unknown;
 }
 
+/** agentspaces-viz: A chart of a bound table by a small spec: a mark (bar, column, line, area, scatter, or table), the x column, one y column or several, a column whose values split the series, an aggregate per x, and a sort. It follows the dataviz method: one value axis, a legend for two series or more, direct labels for four or fewer, hues from the look in fixed order, a ninth series folded into Other, a hover tooltip on every mark and a crosshair on a line or an area, and a table view. A spec that names a column the table lacks says so. */
+export interface VisualizeProps {
+  id: string;
+  component: "Visualize";
+  rows: string;   // the table in the data model: a list of rows
+  mark?: "bar" | "column" | "line" | "area" | "scatter" | "table";
+  x: string;   // the column along the categories (or the x axis of a scatter)
+  y?: string | Array<string>;   // the column of values, or a list of columns, one series each
+  color?: string;   // a column whose values split the rows into series
+  aggregate?: "sum" | "mean" | "count" | "none";
+  sort?: string;   // x, y or a column; a leading - sorts descending
+  title?: string;
+  unit?: string;
+  table?: "toggle" | "below";
+  [extra: string]: unknown;
+}
+
 /** agentspaces-viz: A virtualised table over rows bound to the data model, with sort, filter, paging, and a row action. */
 export interface DataTableProps {
   id: string;
@@ -25,7 +42,8 @@ export interface DataTableProps {
   sort?: string;
   filter?: boolean;
   pageSize?: number;
-  rowAction?: string;
+  rowAction?: string;   // the action a row's button dispatches with {row}
+  rowActionLabel?: string;   // the words on each row's button; the action's name when absent. The button's accessible name adds the row's first column, so a screen reader tells the rows' buttons apart
   [extra: string]: unknown;
 }
 
@@ -47,15 +65,29 @@ export interface MapProps {
   [extra: string]: unknown;
 }
 
-/** agentspaces-viz: Nodes and edges bound to the data model, laid out in columns, by force, or as a tree; a node action. */
+/** agentspaces-viz: Nodes and edges bound to the data model, laid out in columns, by force, or as a tree; a node action. Rows marked lit: true light a path: a lit node draws lit, and when any edge row is lit an edge lights only when it is lit, hovered, or touches the hovered or focused node; a lit node's and a lit edge's accessible text add ", on the path". */
 export interface GraphProps {
   id: string;
   component: "Graph";
-  nodes: string;
-  edges: string;
+  nodes: string;   // the path of the node rows: id, title, sub, column or kind, and lit: true for a node on the path
+  edges: string;   // the path of the edge rows: from, to, label, and lit: true for an edge on the path; when any edge row is lit, the other edges light only on hover or focus of a node they touch
   layout?: "columns" | "force" | "tree";
   columns?: Array<{ key?: string; label?: string }>;
   nodeAction?: string;
+  [extra: string]: unknown;
+}
+
+/** agentspaces-viz: A graph of nodes and edges: a nodes table (id, label, kind) and an edges table (source, target, rel), or GeoFeatures with their links, laid out by force, as a tree, or in layers. A person pans, zooms, drags a node, and clicks one to select it; a node whose id is a GeoFeature's selects that feature on the map. Nodes are coloured by kind from the look in fixed order, with a legend. Rows marked lit: true light a path: lit nodes draw in the selected style and lit edges with the accent stroke, beside a person's own selection, and a lit node's and a lit edge's accessible text add ", on the path". */
+export interface GraphViewProps {
+  id: string;
+  component: "GraphView";
+  nodes?: string;   // the nodes table in the data model: rows with id, label and kind, and lit: true for a node on the path
+  edges?: string;   // the edges table: rows with source, target and rel, and lit: true for an edge on the path
+  features?: string;   // GeoFeatures whose links are the edges, instead of the two tables
+  layout?: "force" | "tree" | "layered";
+  map?: string;   // the id of a GeoMap on this surface a node selects on; in a GeoLayout, the layout's map
+  selectAction?: string;   // dispatched with the node's id and kind when a person selects it
+  title?: string;
   [extra: string]: unknown;
 }
 
@@ -124,6 +156,7 @@ export interface WindowProps {
   placement?: "flow" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
   minimized?: boolean;
   width?: number;   // pixels; 0 for the content's width
+  appearsWith?: string;   // a path into the data model; the window stays hidden until the path holds a row, then appears (data and visualizations arrive as the agents produce them)
   actions?: Array<{ id: string; label: string; icon?: string; action: { name: string; context?: Record<string, unknown> } }>;   // buttons in the window's header, in the shape of TitleBar.actions
   [extra: string]: unknown;
 }
@@ -184,7 +217,7 @@ export interface ProseProps {
 export interface TitleBarProps {
   id: string;
   component: "TitleBar";
-  title: string | { path: string };   // a literal, or {path} into the data model
+  title: string | { "@path": string };   // a literal, or {"@path": ...} into the data model
   subtitle?: string;
   icon?: string;   // an icon name from the renderer's set, such as briefcase
   status?: { from: string; labels?: { working?: string; idle?: string; input?: string; failed?: string } };
@@ -198,7 +231,7 @@ export interface MenuProps {
   id: string;
   component: "Menu";
   trigger?: { kind?: "button" | "overflow" | "context"; label?: string };
-  items: Array<{ id: string; label: string; shortcut?: string; group?: string; disabled?: boolean; checked?: string | { path: string }; action?: { name: string; context?: Record<string, unknown> }; items?: Array<Record<string, unknown>> }> | string;   // the items, or a path to them in the data model
+  items: Array<{ id: string; label: string; shortcut?: string; group?: string; disabled?: boolean; checked?: string | { "@path": string }; action?: { name: string; context?: Record<string, unknown> }; items?: Array<{ id: string; label: string; shortcut?: string; group?: string; disabled?: boolean; checked?: string | { "@path": string }; action?: { name: string; context?: Record<string, unknown> } }> }> | string;   // the items, or a path to them in the data model
   [extra: string]: unknown;
 }
 
@@ -261,11 +294,11 @@ export interface ChatProps {
   reads?: string;   // the path of the ChatMessage rows
   progress?: string;   // the path of the ChatProgress rows
   files?: string;   // the path of the SharedFile rows, which name the attachment and citation chips
-  suggestions?: Array<string>;   // questions offered as chips; a tap sends the question as a line
+  suggestions?: Array<string> | { "@path": string };   // questions offered as chips over the Send box; a tap sends the chip's whole text as the person's line. A list of strings, or a DataBinding to a list the agent writes, never both, so a page's starters are bound rows too. A bound item is a string or a row {text, label, line}: text is the line a tap sends; label, at most 60 characters, the chip's words when they differ (the full text is the chip's title); line, the id of the agent line the chip follows: such a chip draws only while that line is the newest line of the thread, hides when the person sends a new line, and a row with no line always draws. At most 8 chips draw, each cut at 120 characters with its full text as its title and sent whole.
   placeholder?: string;   // the hint in the empty message box
   attach?: boolean;   // a person attaches files: dropped on the chat, picked, or sent from a FileTree's Ask about
   format?: "text/plain" | "text/markdown";   // how an answer without its own format reads; an answer of text/markdown always draws as safe Markdown
-  controls?: Array<"copy" | "retry" | "stop" | "feedback">;   // the controls under an answer: copy its text, retry (a new line in reply to the same question), stop (the chat.stop action), feedback (the chat.feedback action, up or down)
+  controls?: Array<"copy" | "retry" | "stop" | "feedback">;   // the controls under an answer: copy its text, retry (a new line in reply to the same question), stop (the chat.stop action), feedback (two icon buttons, thumbs up Helpful and thumbs down Not helpful, each with its pressed state: the chat.feedback action with up or down, sent again only when the person changes the choice, which the chat keeps per line for the page's life)
   max?: number;   // the newest lines drawn
   preview?: string;   // the id of a FilePreview a citation chip opens its file in
   writeAction?: string;   // the action a sent line dispatches with {type: ChatMessage, entry}; a visitor's secret rides only with the page's write action
@@ -295,7 +328,7 @@ export interface FileTreeProps {
 export interface FilePreviewProps {
   id: string;
   component: "FilePreview";
-  file?: string | { path: string };   // a literal file id, or {path} into the data model where a FileTree puts the person's choice
+  file?: string | { "@path": string };   // a literal file id, or {"@path": ...} into the data model where a FileTree puts the person's choice
   files?: string;   // the path of the SharedFile rows the file is found in
   maxBytes?: number;   // the largest file previewed, at most 16 MiB
   csvRows?: number;   // the rows of a CSV drawn
@@ -303,8 +336,73 @@ export interface FilePreviewProps {
   [extra: string]: unknown;
 }
 
+/** agentspaces-geo: A map of GeoFeature layers: points as icons or dots, lines as paths, polygons as filled shapes with an outline; points cluster below a zoom a layer sets; a click selects a feature with a ring (in a GeoLayout, its card opens as a window), a click on empty map or Escape clears it; pans and zooms with the wheel, a pinch, the + and - buttons and keys, and rotates with a modifier; keeps its view per app in the browser; a legend that hides a layer and says when a layer is capped, and a table view of the features. */
+export interface GeoMapProps {
+  id: string;
+  component: "GeoMap";
+  layers: Array<{ path: string; kind?: string; label?: string; style?: { color?: string; fill?: string; stroke?: string; opacity?: number; width?: number; size?: number; heading?: number; icon?: "dot" | "pin" | "truck" | "van" | "car" | "plane" | "ship" | "person" | "arrow" }; cluster?: { below?: number } }>;   // the feature layers, drawn in order (the first at the bottom)
+  kinds?: string;   // a path to the app's FeatureKind entries: each kind's legend name, default style, and the fields its card shows first
+  home?: { center?: Array<number>; zoom?: number };   // the view the map opens on and returns to with Home
+  basemap?: string;   // a basemap the renderer knows by name (osm, osm-dark, plain, or one its host registers); empty for the look's default
+  selectAction?: string;   // dispatched with the feature's id and kind when a person selects it
+  details?: boolean;   // in a GeoLayout, the map opens the selected feature's card as a window of its own
+  timeSlider?: boolean;   // a slider over the features' times: the map shows the features of a window that ends where the person drags it
+  legend?: boolean;
+  table?: boolean;   // a table view of each layer's features, the dataviz rule
+  transition?: number;   // milliseconds a point takes from its previous position to its newest
+  [extra: string]: unknown;
+}
+
+/** agentspaces-geo: The details of the map's selected feature: its label, kind, severity, how long ago it was observed, and its properties, the fields its kind names first, every value drawn as text; Centre, Follow, Copy id, and Ask, which puts About <label> (<id>) in a chat's box; it follows the feature's updates and says when the feature is gone. */
+export interface FeatureCardProps {
+  id: string;
+  component: "FeatureCard";
+  map: string;   // the id of the GeoMap whose selection the card shows
+  ask?: string;   // the id of the Chat whose box Ask fills (on this surface, or <surface>/<id>); empty for the chat the page last showed
+  fields?: Array<string>;   // the properties shown first when the feature's kind names none
+  [extra: string]: unknown;
+}
+
+/** agentspaces-geo: A search box over the map's features: by label, id and the named properties, as a person types, ignoring case and accents, with up to ten results showing the kind and the label; picking one, or Enter for the first, flies the map to it and selects it; in a GeoLayout it draws in the top bar. */
+export interface FeatureSearchProps {
+  id: string;
+  component: "FeatureSearch";
+  map: string;   // the id of the GeoMap whose features the box searches
+  fields?: Array<string>;   // the properties searched beside the label and the id
+  placeholder?: string;
+  [extra: string]: unknown;
+}
+
+/** agentspaces-geo: A list of the features at a path, newest first by when each was observed: the severity as a ring and a word, the label, the kind, the age, and a property line the design names. A new arrival slides in at the top with the look's highlight, or, when the person scrolled down, a pill says how many are new. A click on a row selects its feature, and the map flies to it and opens its card. It may watch an area (a box, or a polygon feature), listing the features inside it, drawing the area on the map, and marking a feature's arrival inside as an entry. It says when nothing has come yet, and when the feed stopped. */
+export interface WatchboxProps {
+  id: string;
+  component: "Watchbox";
+  path: string;   // the GeoFeatures the watchbox lists (a feature binding's rows)
+  kind?: string;   // a kind, or a prefix ending in *, to list the features of that kind alone
+  label?: string;   // what the watchbox waits for, in "Nothing yet. Waiting for <label>"; the kind when empty
+  fields?: Array<string>;   // the properties on each row's second line
+  max?: number;
+  map?: string;   // the id of a GeoMap on this surface a row selects on; in a GeoLayout, the layout's map
+  area?: Array<number>;   // a box [west, south, east, north] the watchbox watches
+  areaFeature?: string;   // the id of a polygon feature the watchbox watches, at its path or at areaPath
+  areaPath?: string;   // where the area's polygon feature is, when it is not at the watchbox's path
+  actions?: Array<{ name: string; label: string }>;   // row actions, dispatched with the feature's id and kind
+  expectSeconds?: number;   // how often the feed is expected to change; past twice this the watchbox says the feed stopped
+  [extra: string]: unknown;
+}
+
+/** agentspaces-geo: A menu of the map's layers: a toggle each, the count of features, and a note when a layer holds fewer than matched. */
+export interface LayerMenuProps {
+  id: string;
+  component: "LayerMenu";
+  map: string;   // the id of the GeoMap whose layers the menu lists
+  label?: string;
+  [extra: string]: unknown;
+}
+
 /** What each open catalog requires of each component, by catalog id then name. */
 export const OPEN_REQUIRED: Record<string, Record<string, readonly string[]>> = {
-  "agentspaces-viz": { Chart: ["kind","series"], DataTable: ["columns","rows"], Map: ["layers"], Graph: ["nodes","edges"], Timeline: ["events"], Report: ["title","sections"], Notification: ["items","ackAction"], Form: ["fragment","submitAction"], Stat: ["label","value"], Window: ["title","child"], Conversation: ["lines","key"], Notice: ["title"], Toolbar: ["actions"], KeyValue: [], Prose: ["text"], TitleBar: ["title"], Menu: ["items"], Split: ["panes"] },
+  "agentspaces-viz": { Chart: ["kind","series"], Visualize: ["rows","x"], DataTable: ["columns","rows"], Map: ["layers"], Graph: ["nodes","edges"], GraphView: [], Timeline: ["events"], Report: ["title","sections"], Notification: ["items","ackAction"], Form: ["fragment","submitAction"], Stat: ["label","value"], Window: ["title","child"], Conversation: ["lines","key"], Notice: ["title"], Toolbar: ["actions"], KeyValue: [], Prose: ["text"], TitleBar: ["title"], Menu: ["items"], Split: ["panes"] },
   "agentspaces-widgets": { ChatInput: [], FileShare: [], ApprovalCard: [], TimelineStrip: [], Chat: [], FileTree: [], FilePreview: [] },
+  "agentspaces-geo": { GeoMap: ["layers"], FeatureCard: ["map"], FeatureSearch: ["map"], Watchbox: ["path"], LayerMenu: ["map"] },
 };

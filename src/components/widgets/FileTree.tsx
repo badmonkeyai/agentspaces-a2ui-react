@@ -94,6 +94,18 @@ export function FileTreeView({ o, ctx }: { o: TreeOptions; ctx: Ctx }) {
     const path = previewPath(ctx.component(o.preview));
     if (path) ctx.set(path, String(r.file.id ?? ''));
   };
+  // The person's choice is the browser's alone. A write of the whole data model from the feed (the page's components
+  // changed, or its stream replayed from createSurface after a reconnect) clears the preview's path while this tree
+  // still shows the file chosen; put the choice back. Only an emptied path is restored, so a citation chip that opened
+  // another file in the preview keeps it (FIT 2026-11-12: readme.md chosen, then the preview said "Pick a file").
+  const previewAt = previewPath(ctx.component(o.preview));
+  const inPreview = useData<unknown>(ctx, previewAt || undefined);
+  useEffect(() => {
+    if (!previewAt || !selected || (inPreview !== undefined && inPreview !== null && inPreview !== '')) return;
+    const r = byId.get(selected);
+    const id = r?.file ? String(r.file.id ?? '') : '';
+    if (id) ctx.set(previewAt, id);
+  }, [inPreview, selected, byId, previewAt]); // eslint-disable-line react-hooks/exhaustive-deps
   const toggle = (id: string, to: boolean) => {
     const r = byId.get(id);
     if (!r?.folder) return;

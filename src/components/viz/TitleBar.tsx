@@ -30,7 +30,7 @@ const DEFAULT_LABELS: Required<Labels> = { working: 'Working', idle: 'Ready', in
 
 export const TitleBar = define<TitleBarProps>('TitleBar', ({ props, ctx }) => {
   const literal = typeof props.title === 'string' ? props.title : undefined;
-  const path = props.title && typeof props.title === 'object' ? (props.title as { path?: string }).path : undefined;
+  const path = props.title && typeof props.title === 'object' ? (props.title as { '@path'?: string })['@path'] : undefined;
   const bound = useData<unknown>(ctx, path);
   const title = literal ?? (bound === undefined || bound === null ? undefined : String(bound));
   const status = props.status as { from?: string; labels?: Labels } | undefined;

@@ -18,6 +18,9 @@ const peers = ['react', 'react-dom', 'react/jsx-runtime', 'react-dom/client', '@
 await build({ ...common, entryPoints: ['src/index.ts'], outdir: 'dist', splitting: true, chunkNames: 'chunks/[name]-[hash]', external: peers });
 await build({ ...common, entryPoints: { elements: 'src/elements/index.ts' }, outdir: 'dist' });
 await build({ ...common, entryPoints: { gallery: 'src/gallery/main.tsx' }, outdir: 'dist', splitting: true, chunkNames: 'chunks/[name]-[hash]', external: [] });
+// MapLibre makes its workers from `maplibre-gl-worker.mjs` resolved against its own module URL, the gallery's map
+// chunk, so the file sits in dist/chunks (without it the gallery's maps load no tiles)
+copyFileSync('node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs', 'dist/chunks/maplibre-gl-worker.mjs');
 copyFileSync('src/a2ui-react.css', 'dist/a2ui-react.css');
 copyFileSync('gallery.html', 'dist/gallery.html');
 const gz = f => gzipSync(readFileSync('dist/' + f)).length;

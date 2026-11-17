@@ -106,7 +106,7 @@ export const Chart = define<ChartProps>('Chart', ({ props, ctx }) => {
 });
 
 /** A bar with its data end rounded (4px) and its baseline end square, as the method's marks are. */
-function bar(x: number, y: number, w: number, h: number, up: boolean): string {
+export function bar(x: number, y: number, w: number, h: number, up: boolean): string {
   const r = Math.min(4, w / 2, h);
   if (h <= 0) return '';
   return up

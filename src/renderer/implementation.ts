@@ -8,8 +8,8 @@
 // and the action channel are web_core's and the drawing is ours. Nothing a component receives is ever placed in the
 // DOM as markup: React escapes every string, so nothing an agent writes executes.
 import { createElement, useEffect, useState, type FC, type ReactNode } from 'react';
-import { createBinderlessComponentImplementation, type ReactComponentImplementation } from '@a2ui/react/v0_9';
-import { ChildListSchema, ComponentIdSchema, DataModel, type ComponentContext } from '@a2ui/web_core/v0_9';
+import { createBinderlessComponentImplementation, type ReactComponentImplementation } from '@a2ui/react';
+import { ChildListSchema, ComponentIdSchema, DataModel, type ComponentContext } from '@a2ui/web_core/v1_0';
 import { z } from 'zod';
 
 export type Implementation = ReactComponentImplementation;
@@ -27,6 +27,11 @@ export interface Ctx {
   subscribe(path: string, onChange: (value: unknown) => void): () => void;
   /** Dispatches a named action with its context; the host posts it back as a SurfaceAction. */
   dispatch(name: string | undefined, context?: Record<string, unknown>): void;
+  /**
+   * Calls one of the drawing agent's functions (A2UI 1.0's callAgentFunction) with literal arguments and resolves with
+   * its answer; rejects with the agent's error, when no answer comes in time, or when the page sends no calls.
+   */
+  call(fn: string, args?: Record<string, unknown>): Promise<unknown>;
   /**
    * Hands a file to the page's uploader for this surface (the feed's upload route) with the lawful basis and a progress
    * callback; the feed's answer, or false when the page has none.
@@ -61,6 +66,8 @@ export interface FileRef { id?: string; root?: string; name?: string; mediaType?
  */
 export interface FileSource { url(file: FileRef, view: boolean): string; text?(file: FileRef): Promise<string> }
 export const fileSources = new Map<string, FileSource>();
+/** How a surface calls its agent's functions, keyed by surface id: set by Surfaces while the surface is drawn. */
+export const agentFunctions = new Map<string, (fn: string, args?: Record<string, unknown>) => Promise<unknown>>();
 
 function ctxOf(context: ComponentContext, buildChild: (id: string, basePath?: string) => ReactNode): Ctx {
   const model = context.dataContext.dataModel;
@@ -74,6 +81,10 @@ function ctxOf(context: ComponentContext, buildChild: (id: string, basePath?: st
     set: (path, value) => { model.set(absolute(path), value); },
     subscribe: (path, onChange) => { const s = model.subscribe(absolute(path), onChange); return () => s.unsubscribe(); },
     dispatch: (name, extra) => { if (name) void context.dispatchAction({ event: { name, context: extra ?? {} } }); },
+    call: (fn, args) => {
+      const caller = agentFunctions.get(surfaceOf());
+      return caller ? caller(fn, args) : Promise.reject(new Error('this page sends no agent function calls'));
+    },
     upload: async (file, opts) => {
       const up = uploaders.get((context.dataContext.surface as { id?: string } | undefined)?.id ?? '');
       if (!up) return false;

@@ -1,7 +1,7 @@
 {
   "name": "@agentspaces/a2ui-react",
   "version": "0.6.0",
-  "description": "The open React renderer of the AgentSpaces A2UI catalogs agentspaces-viz and agentspaces-widgets, with the open custom elements it wraps (the panel split), the look and feel as CSS variables, and the dataviz method for every chart",
+  "description": "The open React renderer of the AgentSpaces A2UI catalogs agentspaces-viz, agentspaces-widgets and agentspaces-geo, with the open custom elements it wraps (the panel split), the look and feel as CSS variables, and the dataviz method for every chart",
   "license": "Apache-2.0",
   "author": "Bad Monkey, Inc. <oss@badmonkey.ai> (https://badmonkey.ai)",
   "homepage": "https://github.com/badmonkeyai/agentspaces-a2ui-react#readme",
@@ -28,7 +28,7 @@
     "./style.css": "./dist/a2ui-react.css",
     "./package.json": "./package.json"
   },
-  "files": ["dist", "!dist/axe.json", "!dist/size.json", "src", "README.md", "CHANGELOG.md", "LICENSE", "NOTICE"],
+  "files": ["dist", "!dist/axe.json", "!dist/size.json", "!dist/perf.json", "src", "README.md", "CHANGELOG.md", "LICENSE", "NOTICE"],
   "publishConfig": {
     "access": "public"
   },
@@ -38,6 +38,7 @@
     "build": "node tools/generate.mjs --check && node tools/import-check.mjs && tsc -p tsconfig.json && node build.mjs",
     "test": "npm run build && node --test test/*.test.mjs",
     "axe": "node tools/gallery-axe.mjs",
+    "perf": "node tools/perf-probe.mjs",
     "lint": "node tools/docs-lint.mjs .",
     "prepublishOnly": "npm run clean && npm test"
   },

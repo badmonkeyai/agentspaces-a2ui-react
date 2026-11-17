@@ -16,17 +16,17 @@ const working = { id: 'progress-m-1', key: 'main', inReplyTo: 'm-1', agent: 'wor
 
 /** A page whose envelopes grow: `push` adds envelopes and redraws, as the feed's stream does. */
 async function page(initial, components = [{ id: 'chat', component: 'Chat', agent: 'workbench', key: 'main', attach: true, controls: ['copy', 'retry', 'stop', 'feedback'], preview: 'preview' },
-  { id: 'preview', component: 'FilePreview', file: { path: '/selected/file' } }], catalogId = 'agentspaces-widgets') {
+  { id: 'preview', component: 'FilePreview', file: { '@path': '/selected/file' } }], catalogId = 'agentspaces-widgets') {
   const actions = [];
   let set;
   const base = [
-    { version: 'v0.9.1', createSurface: { surfaceId: 'wb', catalogId } },
-    { version: 'v0.9.1', updateComponents: { surfaceId: 'wb', components: [{ id: 'root', component: 'Column', children: components.map(c => c.id) }, ...components] } },
-    { version: 'v0.9.1', updateDataModel: { surfaceId: 'wb', path: '/', value: initial } },
+    { version: '1.0', createSurface: { surfaceId: 'wb', catalogId } },
+    { version: '1.0', updateComponents: { surfaceId: 'wb', components: [{ id: 'root', component: 'Column', children: components.map(c => c.id) }, ...components] } },
+    { version: '1.0', updateDataModel: { surfaceId: 'wb', path: '/', value: initial } },
   ];
   function Host() { const [env, setEnv] = React.useState(base); set = setEnv; return React.createElement(ui.Surfaces, { envelopes: env, onAction: a => actions.push(a) }); }
   const m = await mount(React.createElement(Host));
-  const push = async value => { await React.act(async () => { set(e => [...e, { version: 'v0.9.1', updateDataModel: { surfaceId: 'wb', path: '/', value } }]); }); };
+  const push = async value => { await React.act(async () => { set(e => [...e, { version: '1.0', updateDataModel: { surfaceId: 'wb', path: '/', value } }]); }); };
   return { ...m, actions, push };
 }
 const press = async (container, words) => {
@@ -170,7 +170,7 @@ test('a file from the tree\'s Ask about and a dropped file ride with the next li
   await unmount();
 });
 
-test('an answer\'s controls copy, retry the question, and say good or poor', async () => {
+test('an answer\'s controls copy, retry the question, and give thumbs feedback', async () => {
   const copied = [];
   Object.defineProperty(navigator, 'clipboard', { value: { writeText: async t => { copied.push(t); } }, configurable: true });
   const answer = { id: 'm-2', key: 'main', from: { kind: 'agent', name: 'workbench' }, text: 'Travel.', inReplyTo: 'm-1', at: '2026-11-10T14:01:00Z' };
@@ -181,9 +181,49 @@ test('an answer\'s controls copy, retry the question, and say good or poor', asy
   assert.equal(actions.at(-1).name, 'write');
   assert.equal(actions.at(-1).context.entry.inReplyTo, 'm-1', 'a new line in reply to the same question');
   assert.equal(actions.at(-1).context.entry.text, 'Where did we overspend?');
-  await click(container.querySelector('button[aria-label="A poor answer"]'));
-  assert.deepEqual([actions.at(-1).name, actions.at(-1).context], ['chat.feedback', { line: 'm-2', key: 'main', value: 'down' }]);
+  await click(container.querySelector('button[aria-label="Not helpful"]'));
+  assert.deepEqual([actions.at(-1).name, actions.at(-1).context], ['chat.feedback', { line: 'm-2', key: 'main', value: 'down' }], 'the action and its payload as before');
   await unmount();
+});
+
+test('feedback is a thumbs up and a thumbs down with aria-pressed; the choice is kept per line, sent once, and sent again on a change', async () => {
+  // AF-6 to AF-8
+  const answer = (id, at) => ({ id, key: 'main', from: { kind: 'agent', name: 'workbench' }, text: 'Answer ' + id, inReplyTo: 'm-1', at });
+  const rows = { conversations: [question, answer('fb-1', '2026-11-10T14:01:00Z'), answer('fb-2', '2026-11-10T14:02:00Z')], files: [q3] };
+  const chat = [{ id: 'chat', component: 'Chat', agent: 'workbench', key: 'main', controls: ['feedback'] }];
+  const first = await page(rows, chat);
+  const thumbs = line => [...first.container.querySelectorAll(`[data-line="${line}"] .as-chat-feedback button`)];
+  const pressed = line => thumbs(line).map(b => b.getAttribute('aria-pressed'));
+  assert.deepEqual(thumbs('fb-1').map(b => b.getAttribute('aria-label')), ['Helpful', 'Not helpful']);
+  assert.deepEqual(pressed('fb-1'), ['false', 'false'], 'nothing pressed yet');
+  assert.equal(first.container.querySelector('[data-line="fb-1"] .as-chat-feedback').getAttribute('role'), 'group');
+  for (const b of thumbs('fb-1')) {
+    const svg = b.querySelector('svg');
+    assert.ok(svg, 'an icon, inline');
+    assert.equal(svg.getAttribute('aria-hidden'), 'true', 'the icon is hidden; the button is named');
+    assert.equal(svg.querySelector('path').getAttribute('stroke'), 'currentColor', 'drawn in the text colour, so a theme colours it');
+    assert.equal(b.textContent.trim(), '', 'no icon font, no text glyph');
+    assert.equal(b.tabIndex >= 0 && b.tagName, 'BUTTON', 'a keyboard reaches it');
+  }
+  await click(thumbs('fb-1')[0]);
+  assert.deepEqual(pressed('fb-1'), ['true', 'false']);
+  assert.deepEqual(pressed('fb-2'), ['false', 'false'], 'each line keeps its own');
+  assert.deepEqual(first.actions.filter(a => a.name === 'chat.feedback').map(a => a.context), [{ line: 'fb-1', key: 'main', value: 'up' }]);
+  await click(thumbs('fb-1')[0]);
+  assert.equal(first.actions.filter(a => a.name === 'chat.feedback').length, 1, 'the same press again sends nothing');
+  await click(thumbs('fb-1')[1]);
+  assert.deepEqual(pressed('fb-1'), ['false', 'true'], 'a change moves the pressed state');
+  assert.deepEqual(first.actions.filter(a => a.name === 'chat.feedback').map(a => a.context.value), ['up', 'down'], 'and sends again');
+  await click(thumbs('fb-2')[0]);
+  assert.deepEqual(first.actions.filter(a => a.name === 'chat.feedback').at(-1).context, { line: 'fb-2', key: 'main', value: 'up' });
+  await first.unmount();
+  // the page's life: a chat drawn again remembers each line's choice and still sends nothing for the same press
+  const again = await page(rows, chat);
+  assert.deepEqual([...again.container.querySelectorAll('[data-line="fb-1"] .as-chat-feedback button')].map(b => b.getAttribute('aria-pressed')), ['false', 'true']);
+  assert.deepEqual([...again.container.querySelectorAll('[data-line="fb-2"] .as-chat-feedback button')].map(b => b.getAttribute('aria-pressed')), ['true', 'false']);
+  await click(again.container.querySelector('[data-line="fb-1"] button[aria-label="Not helpful"]'));
+  assert.equal(again.actions.length, 0, 'remembered across a redraw');
+  await again.unmount();
 });
 
 test('a draft survives a redraw of the chat', async () => {
@@ -204,3 +244,131 @@ test('a host\'s extra draws under each agent line', async () => {
   await unmount();
 });
 
+
+test('the suggestions show once per thread, over the Send box, and stay after each answer', async () => {
+  localStorage.setItem('agentspaces-chat-secret', SA);
+  const asks = ['Where did we overspend?', 'What changed in Q3?'];
+  const { container, actions, push, unmount } = await page({ conversations: [] }, [{ id: 'chat', component: 'Chat', agent: 'workbench', key: 'main', suggestions: asks }]);
+  const sets = () => [...container.querySelectorAll('[data-component="Chat"] .suggestions')];
+  assert.equal(sets().length, 1, 'one set on an empty thread');
+  assert.equal(container.querySelector('[role="log"] .suggestions'), null, 'not inside the log');
+  assert.equal(sets()[0].nextElementSibling.matches('form.send'), true, 'right over the Send box');
+  const answer = (n, q) => [{ id: 'q-' + n, key: 'main', from: { kind: 'person', name: 'ana' }, text: q, at: `2026-11-10T14:0${n}:00Z` },
+    { id: 'a-' + n, key: 'main', from: { kind: 'agent', name: 'workbench' }, text: 'Answer ' + n, inReplyTo: 'q-' + n, at: `2026-11-10T14:0${n}:30Z` }];
+  let rows = [];
+  for (const [n, q] of asks.entries()) {
+    await click(sets()[0].querySelectorAll('button')[n]);
+    assert.equal(actions.at(-1).context.entry.text, q, 'a tap sends the suggestion');
+    rows = [...rows, ...answer(n + 1, q)];
+    await push({ conversations: rows });
+    assert.equal(container.querySelectorAll('.line.agent').length, n + 1);
+    assert.equal(sets().length, 1, 'still one set after answer ' + (n + 1));
+    assert.deepEqual([...sets()[0].querySelectorAll('button')].map(b => b.textContent), asks, 'every suggestion stays offered');
+  }
+  await unmount();
+});
+
+// AF-1 to AF-5, AF-19: follow-ups the agent writes at a bound path
+const asked = (n, text) => ({ id: 'q-' + n, key: 'main', from: { kind: 'person', name: 'ana' }, text, at: `2026-11-10T14:0${n}:00Z` });
+const answered = n => ({ id: 'a-' + n, key: 'main', from: { kind: 'agent', name: 'workbench' }, text: 'Answer ' + n, inReplyTo: 'q-' + n, at: `2026-11-10T14:0${n}:30Z` });
+const boundChat = [{ id: 'chat', component: 'Chat', agent: 'workbench', key: 'main', suggestions: { '@path': '/followups' } }];
+const chipsOf = container => [...container.querySelectorAll('[data-component="Chat"] .suggestions button')];
+const chipWords = container => chipsOf(container).map(b => b.textContent);
+
+test('bound follow-ups draw with their answer, hide when the person sends a new line, and return with the next answer', async () => {
+  localStorage.setItem('agentspaces-chat-secret', SA);
+  const starters = [{ text: 'What does the policy say?' }, 'Which claims are open?'];
+  const p = await page({ conversations: [], followups: starters }, boundChat);
+  assert.deepEqual(chipWords(p.container), ['What does the policy say?', 'Which claims are open?'], 'rows with no line draw while no answer exists, a string as a row');
+  assert.ok(p.text().includes('Tap a suggestion'), 'the empty thread points at them');
+  // a tap sends the chip's text as the person's line
+  await click(chipsOf(p.container)[0]);
+  assert.equal(p.actions.at(-1).name, 'write');
+  assert.equal(p.actions.at(-1).context.entry.text, 'What does the policy say?');
+  // the answer replaces the starters with its own follow-ups, each naming its line
+  let rows = [asked(1, 'What does the policy say?'), answered(1)];
+  await p.push({ conversations: rows, followups: [{ text: 'Which receipts are missing?', line: 'a-1' }, { text: 'Who approved it?', line: 'a-1' }, { text: 'An old one', line: 'a-0' }] });
+  assert.deepEqual(chipWords(p.container), ['Which receipts are missing?', 'Who approved it?'], 'the newest answer\'s rows, not an older answer\'s');
+  assert.deepEqual(chipsOf(p.container).map(b => b.dataset.line), ['a-1', 'a-1']);
+  // the person types a new line: the chips hide at once, and stay hidden while the line has no answer
+  const box = p.container.querySelector('input[aria-label="message"]');
+  await type(box, 'And the travel budget?');
+  await React.act(async () => { p.container.querySelector('form.send').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); });
+  assert.deepEqual(chipWords(p.container), [], 'hidden as soon as the person sends');
+  rows = [...rows, asked(2, 'And the travel budget?')];
+  await p.push({ conversations: rows, followups: [{ text: 'Which receipts are missing?', line: 'a-1' }, { text: 'Who approved it?', line: 'a-1' }] });
+  assert.deepEqual(chipWords(p.container), [], 'the newest line is the person\'s: an answer\'s chips do not draw');
+  assert.equal(p.container.querySelector('[data-component="Chat"] .suggestions'), null, 'no empty group either');
+  // the next answer brings its own
+  rows = [...rows, answered(2)];
+  await p.push({ conversations: rows, followups: [{ text: 'Which trips ran over?', line: 'a-2' }] });
+  assert.deepEqual(chipWords(p.container), ['Which trips ran over?']);
+  await click(chipsOf(p.container)[0]);
+  assert.equal(p.actions.at(-1).context.entry.text, 'Which trips ran over?', 'a tap sends it as the person\'s line');
+  assert.equal(JSON.stringify(p.actions.at(-1)).includes('a-2'), false, 'a chip sends only its text; its line only decides whether it draws');
+  await p.unmount();
+});
+
+test('a row with no line always draws, beside the newest answer\'s, and the bound rows are never written by the chat', async () => {
+  const followups = [{ text: 'Start over' }, { text: 'Which receipts are missing?', line: 'a-1' }];
+  const p = await page({ conversations: [asked(1, 'Why was it held?'), answered(1), asked(2, 'And now?')], followups }, boundChat);
+  assert.deepEqual(chipWords(p.container), ['Start over'], 'the person spoke last: only the row with no line');
+  await p.push({ conversations: [asked(1, 'Why was it held?'), answered(1)], followups });
+  assert.deepEqual(chipWords(p.container), ['Start over', 'Which receipts are missing?']);
+  await click(chipsOf(p.container)[1]);
+  assert.deepEqual(p.actions.map(a => a.name), ['write'], 'a tap writes the line and nothing else: the component never writes the rows');
+  await p.unmount();
+});
+
+test('at most 8 chips draw, each cut at 120 characters with its full text as its title, and a tap sends the full text', async () => {
+  localStorage.setItem('agentspaces-chat-secret', SA);
+  const long = 'Which travel claims of the third quarter ran over their budget, which receipts does each one lack, who approved each of them, and when?';
+  assert.ok(long.length > 120);
+  const rows = [{ text: long, line: 'a-1' }, ...Array.from({ length: 9 }, (_, i) => ({ text: 'Follow-up ' + (i + 1), line: 'a-1' }))];
+  const p = await page({ conversations: [asked(1, 'Why?'), answered(1)], followups: rows }, boundChat);
+  const chips = chipsOf(p.container);
+  assert.equal(chips.length, 8, 'eight of ten');
+  assert.equal(chips[0].textContent.length, 120, 'cut at 120');
+  assert.ok(chips[0].textContent.endsWith('…'), 'with an ellipsis');
+  assert.equal(chips[0].title, long, 'the full text is its title');
+  assert.deepEqual(chipWords(p.container).slice(1), ['Follow-up 1', 'Follow-up 2', 'Follow-up 3', 'Follow-up 4', 'Follow-up 5', 'Follow-up 6', 'Follow-up 7'], 'in the agent\'s order');
+  await click(chips[0]);
+  assert.equal(p.actions.at(-1).context.entry.text, long, 'a cut chip sends its full text, never the cut one');
+  assert.deepEqual(chipWords(p.container), [], 'and the answer\'s chips hide once the person has sent');
+  await p.unmount();
+  // a fixed list keeps the same caps
+  const fixed = await page({ conversations: [] }, [{ id: 'chat', component: 'Chat', key: 'main', suggestions: [long, ...Array.from({ length: 9 }, (_, i) => 'Ask ' + i)] }]);
+  assert.equal(chipsOf(fixed.container).length, 8);
+  await click(chipsOf(fixed.container)[0]);
+  assert.equal(fixed.actions.at(-1).context.entry.text, long);
+  await fixed.unmount();
+});
+
+test('a chip shows its label and sends its full text', async () => {
+  // AF-19: the owner's long questions go out word for word under a short chip
+  localStorage.setItem('agentspaces-chat-secret', SA);
+  const text = 'A port is flapping. What can cause it, which component does each fault sit in, and which check examines that component?';
+  const p = await page({ conversations: [], followups: [{ text, label: 'What makes a port flap?' }, { text: 'Short question', label: '' }, { text: 'Spaced', label: '   ' },
+    { text: 'Long label', label: 'L'.repeat(70) }] }, boundChat);
+  const chips = chipsOf(p.container);
+  assert.equal(chips[0].textContent, 'What makes a port flap?', 'the label is the chip');
+  assert.equal(chips[0].title, text, 'the full text is its title');
+  assert.equal(chips[1].textContent, 'Short question', 'an empty label falls back to the text');
+  assert.equal(chips[1].title, '', 'no title when the chip shows its whole text');
+  assert.equal(chips[2].textContent, 'Spaced');
+  assert.equal(chips[3].textContent.length, 60, 'a label is cut at 60');
+  await click(chips[0]);
+  assert.equal(p.actions.at(-1).context.entry.text, text, 'a tap sends the whole text, not the label');
+  await p.unmount();
+});
+
+test('a bound path that holds no rows, or no list, draws no chips and the chat still works', async () => {
+  const p = await page({ conversations: [] }, boundChat);
+  assert.deepEqual(chipWords(p.container), []);
+  assert.ok(p.text().includes('No message yet.'));
+  await p.push({ conversations: [], followups: 'not a list' });
+  assert.deepEqual(chipWords(p.container), []);
+  await p.push({ conversations: [], followups: [{ label: 'no text' }, { text: '   ' }, 42, null] });
+  assert.deepEqual(chipWords(p.container), [], 'a row with no text is no chip');
+  await p.unmount();
+});

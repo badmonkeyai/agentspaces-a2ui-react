@@ -16,6 +16,8 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const React = await import('react');
 const { createRoot } = await import('react-dom/client');
 export const ui = await import('../dist/index.js');
+// the geo drawings are a chunk a page loads on first use; the tests load it ahead, so a geo surface draws at once
+await ui.loadGeo();
 export { React };
 
 /** Renders an element; returns the container and the unmount. */
@@ -39,10 +41,10 @@ export async function draw(envelopes, options = {}) {
 
 export function envelope(surfaceId, components, data, catalogId = 'agentspaces-viz') {
   const out = [
-    { version: 'v0.9.1', createSurface: { surfaceId, catalogId } },
-    { version: 'v0.9.1', updateComponents: { surfaceId, components: [{ id: 'root', component: 'Column', children: components.filter(c => !c.inner).map(c => c.id) }, ...components.map(({ inner, ...c }) => c)] } },
+    { version: '1.0', createSurface: { surfaceId, catalogId } },
+    { version: '1.0', updateComponents: { surfaceId, components: [{ id: 'root', component: 'Column', children: components.filter(c => !c.inner).map(c => c.id) }, ...components.map(({ inner, ...c }) => c)] } },
   ];
-  if (data) out.push({ version: 'v0.9.1', updateDataModel: { surfaceId, path: '/', value: data } });
+  if (data) out.push({ version: '1.0', updateDataModel: { surfaceId, path: '/', value: data } });
   return out;
 }
 

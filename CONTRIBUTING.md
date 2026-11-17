@@ -84,7 +84,7 @@ implementations, the golden surfaces, the look-and-feel type, and
   `tools/import-check.mjs` fails the build if one does. Custom elements start
   with `agentspaces-`.
 - **Keyboard and screen reader first.** Each interactive component follows its
-  WAI-ARIA pattern, and the axe run allows no serious or critical finding.
+  WAI-ARIA pattern, and the axe run allows no finding of any impact.
 - **View state stays in the browser.** Split sizes, open menus and the current
   page live in the page and `localStorage`, and never reach an agent's space.
 - **Peers stay peers.** React, `@a2ui/react`, `@a2ui/web_core`, markdown-it,

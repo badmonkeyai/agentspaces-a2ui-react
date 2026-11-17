@@ -6,12 +6,12 @@ import assert from 'node:assert/strict';
 import { draw, envelope } from './setup.mjs';
 
 const { appendEnvelope, SUPERSEDED } = await import('../dist/index.js');
-const data = (surfaceId, path, value) => ({ version: 'v0.9.1', updateDataModel: { surfaceId, path, value } });
+const data = (surfaceId, path, value) => ({ version: '1.0', updateDataModel: { surfaceId, path, value } });
 const shape = log => log.map(e => (e === SUPERSEDED ? '-' : e.updateDataModel ? `${e.updateDataModel.surfaceId}${e.updateDataModel.path ?? ''}` : Object.keys(e)[1]));
 const append = (log, ...envelopes) => envelopes.reduce(appendEnvelope, log);
 
 test('a data write replaces the earlier writes at its path and below it, of its own surface, and nothing else', () => {
-  const log = append([], { version: 'v0.9.1', createSurface: { surfaceId: 'm', catalogId: 'agentspaces-viz' } },
+  const log = append([], { version: '1.0', createSurface: { surfaceId: 'm', catalogId: 'agentspaces-viz' } },
     data('m', '/units', [1]), data('m', '/units/0/lat', 5), data('m', '/unitsAll', 1), data('m', '/title', 'a'), data('n', '/units', [9]),
     data('m', '/units', [2]));
   assert.deepEqual(shape(log), ['createSurface', '-', '-', 'm/unitsAll', 'm/title', 'n/units', 'm/units']);
@@ -25,7 +25,7 @@ test('a data write replaces the earlier writes at its path and below it, of its 
 });
 
 test('a thousand writes of one path keep one of them, and the log grows by one slot each', () => {
-  let log = [{ version: 'v0.9.1', createSurface: { surfaceId: 'geo', catalogId: 'agentspaces-viz' } }];
+  let log = [{ version: '1.0', createSurface: { surfaceId: 'geo', catalogId: 'agentspaces-viz' } }];
   for (let i = 0; i < 1000; i++) log = appendEnvelope(log, data('geo', '/units', Array.from({ length: 12 }, (_, u) => ({ unit: `truck-${u}`, lat: i, lon: u }))));
   assert.equal(log.length, 1001);
   assert.equal(log.filter(e => e !== SUPERSEDED).length, 2);
@@ -33,7 +33,7 @@ test('a thousand writes of one path keep one of them, and the log grows by one s
 });
 
 test('the renderer passes over a replaced write and draws the one that replaced it, with no problem', async () => {
-  const [create, components] = envelope('s', [{ id: 't', component: 'Text', text: { path: '/title' } }]);
+  const [create, components] = envelope('s', [{ id: 't', component: 'Text', text: { '@path': '/title' } }]);
   const log = append([], create, components, data('s', '/title', 'first'), data('s', '/title', 'second'));
   assert.equal(log[2], SUPERSEDED);
   const r = await draw(log);

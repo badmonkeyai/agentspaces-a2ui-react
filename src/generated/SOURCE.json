@@ -2,26 +2,34 @@
   "inputs": {
     "agentspaces-viz": {
       "path": "agentspaces-a2ui/src/main/resources/catalogs/agentspaces-viz/catalog.json",
-      "sha256": "7bbeac35510332d1285c0978588071e20ecbb80434af2b266da47e53e3894443"
+      "sha256": "5e5e796647952f75fbb2b0327a1a95677a4915bf8a5710e2f6741f1e2743fdb1"
     },
     "agentspaces-widgets": {
       "path": "agentspaces-a2ui/src/main/resources/catalogs/agentspaces-widgets/catalog.json",
-      "sha256": "7e67618061fb17c5cd489016133703eb243bf94c1b5d40912e4466896c86e157"
+      "sha256": "b159873fd4a723b55f01fa25e2007d069d4d7e11bb2780abce214dae53afe90b"
+    },
+    "agentspaces-geo": {
+      "path": "agentspaces-a2ui-geo/src/main/resources/catalogs/agentspaces-geo/catalog.json",
+      "sha256": "50c7c3fffa25a8f90174e967fa2229fc868a5fa3f9c99b91e054f65bb2d977b6"
     },
     "goldens": {
       "path": "agentspaces-a2ui/src/test/resources/golden/surfaces.json",
-      "sha256": "450b563694b743ec235c71d9d5198400c4bf84d50817837fa5c5c999057abbeb"
+      "sha256": "e02700b1cc5826d73bf6120ad6dc7ab77d9ad54f459dd6eae542e9fd7fc92c13"
+    },
+    "geoGoldens": {
+      "path": "agentspaces-a2ui-geo/src/test/resources/golden/surfaces.json",
+      "sha256": "531457762a7e9f4a052f29eb6760a417fb6eb7de807cf0ca151e5fb2277af499"
     },
     "look": {
       "path": "agentspaces-a2ui/src/main/resources/catalogs/look-and-feel.schema.json",
-      "sha256": "efc2ad74192095d3cbc3b2eb808492d701ed441cd4d6ec0f5dc2fc6c7c920ca2"
+      "sha256": "43e8f17fa897ace0e3c43caf52144db33b8ee5b9d00a292fc3ea8bc4fcb44fb3"
     }
   },
   "outputs": {
-    "catalogs.ts": "b5397b4b8697bae0589b97b22cbbeb9befb60946cea740bf8c3993cb4cb1e0c8",
-    "props.ts": "7f882308ba1c68bf3baa78d5583e55669d236222c45f5ecb146c29abe790d392",
-    "registry.ts": "2226f7f4192f6d63ae2a04ecb5b45379c05ed2e1829a3c7db407c46b68625d6a",
-    "goldens.ts": "2cccf647388d4871631b86fcd8c574dab3a77698f6f5a218eb02858fe9601b52",
-    "look.ts": "91b2bd8b5d2ce632a5b2c2a9879f2116fb6892c85ec65a461ac815f6e4cec87d"
+    "catalogs.ts": "b023d469f2c764b269ef5165c015a24014ba4c47366214a7077d78083e32fdf7",
+    "props.ts": "05c8134cac6c7c01aac5a3b4a41c8880ad8eea51c0f8138ccf04e322bbb186d5",
+    "registry.ts": "21ded86e16080310988f9cdc168c324a91ea194b4e96a6724f84884c53398a69",
+    "goldens.ts": "6dacb410201bec9e0934b2048a6ab22f2692c263445f4c89d8a4d99b90e12c74",
+    "look.ts": "a91b3fca54be4305f6ce37e90faaddc5aee2e78b1fcb17213628f0a6bacbe1d3"
   }
 }

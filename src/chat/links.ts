@@ -29,5 +29,6 @@ export function onAttach(surfaceId: string, chatId: string, listener: Listener):
 /** The data model path a FilePreview reads its file from, when its `file` is a path; else empty. */
 export function previewPath(props: Record<string, unknown> | undefined): string {
   const f = props?.file;
-  return f && typeof f === 'object' && typeof (f as { path?: unknown }).path === 'string' ? String((f as { path: string }).path) : '';
+  // A2UI 1.0's data binding is {"@path": ...} (2026-11-12)
+  return f && typeof f === 'object' && typeof (f as { '@path'?: unknown })['@path'] === 'string' ? String((f as { '@path': string })['@path']) : '';
 }

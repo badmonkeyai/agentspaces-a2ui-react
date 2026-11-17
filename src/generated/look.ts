@@ -95,6 +95,50 @@ export const LOOK_SCHEMA = {
             "accent": {
               "$ref": "#/$defs/hex"
             },
+            "bar": {
+              "$ref": "#/$defs/hex",
+              "description": "the top bar and the panels' headers; the surface when absent"
+            },
+            "panel": {
+              "$ref": "#/$defs/hex",
+              "description": "a panel's background; a tint of the ink over the surface when absent"
+            },
+            "field": {
+              "$ref": "#/$defs/hex",
+              "description": "input fields and hover backgrounds; the surface when absent"
+            },
+            "button": {
+              "$ref": "#/$defs/hex",
+              "description": "a primary button's background; the accent when absent"
+            },
+            "highlight": {
+              "$ref": "#/$defs/hex",
+              "description": "a highlighted row's or a new item's background"
+            },
+            "highlightInk": {
+              "$ref": "#/$defs/hex",
+              "description": "a highlight's foreground; the accent when absent"
+            },
+            "info": {
+              "$ref": "#/$defs/hex",
+              "description": "speaker names and information notices; the muted ink when absent"
+            },
+            "inkFaint": {
+              "$ref": "#/$defs/hex",
+              "description": "the faintest text that still reads: meta lines, counts, timestamps; the muted ink when absent"
+            },
+            "accentInk": {
+              "$ref": "#/$defs/hex",
+              "description": "text and icons drawn on the accent, as on a primary button; the surface when absent"
+            },
+            "line": {
+              "$ref": "#/$defs/hex",
+              "description": "hairlines: borders, dividers and table rules; the ink at 18% over the surface when absent"
+            },
+            "lineStrong": {
+              "$ref": "#/$defs/hex",
+              "description": "a stronger line for hover borders and graph edges; the ink at 30% over the surface when absent"
+            },
             "categorical": {
               "type": "array",
               "items": {
@@ -141,6 +185,11 @@ export const LOOK_SCHEMA = {
               "type": "string",
               "pattern": "^[A-Za-z0-9 ,'-]+$"
             },
+            "mono": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9 ,'-]+$",
+              "description": "the fixed-width family for code, ids and figures; a monospace default when absent"
+            },
             "scale": {
               "type": "array",
               "items": {
@@ -178,8 +227,8 @@ export const LOOK_SCHEMA = {
   }
 } as const;
 export interface ModeTokens {
-  color: { surface: string; ink: string; inkMuted?: string; accent: string; categorical: string[]; sequential?: string; diverging?: { warm?: string; neutral?: string; cool?: string }; status: Record<string, string> & { good: string; warning: string; serious: string; critical: string } };
-  type?: { family?: string; scale?: number[] };
+  color: { surface: string; ink: string; inkMuted?: string; accent: string; bar?: string; panel?: string; field?: string; button?: string; highlight?: string; highlightInk?: string; info?: string; inkFaint?: string; accentInk?: string; line?: string; lineStrong?: string; categorical: string[]; sequential?: string; diverging?: { warm?: string; neutral?: string; cool?: string }; status: Record<string, string> & { good: string; warning: string; serious: string; critical: string } };
+  type?: { family?: string; mono?: string; scale?: number[] };
   space?: { unit?: number; density?: 'comfortable' | 'compact' };
   radius?: number;
   shadow?: 'none' | 'soft' | 'strong';

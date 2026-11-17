@@ -6,9 +6,15 @@
 // DOM (a window of rows around the scroll position), with sort by column, a filter, paging, and a row action.
 // Greeter chatbot, 2026-11-08 (H6): a date or datetime column reads in the viewer's own zone, as the chat's bubbles do,
 // and sorts by its instant; the count says "row" for one.
+// A row action's button reads rowActionLabel, else the action's name, and its accessible name adds the row's first
+// column, so a screen reader tells "Open C-1001" from "Open C-1002" (AF-14). The scrolling wrapper takes the keyboard
+// (tabindex 0) and is a region named for the table's columns (D-F11).
 import { useMemo, useRef, useState } from 'react';
 import { define, fmt, useRows } from '../../renderer/implementation';
 import type { DataTableProps } from '../../generated/props';
+import { useLook } from '../../look/provider';
+import { guessSpec } from '../../viz/visualize';
+import { VisualizeView } from './Visualize';
 
 const ROW_H = 28, VIEW_H = 360, OVERSCAN = 6;
 
@@ -43,19 +49,36 @@ export const DataTable = define<DataTableProps>('DataTable', ({ props, ctx }) =>
   const window = paged.slice(first, last);
   const pages = pageSize ? Math.max(1, Math.ceil(shown.length / pageSize)) : 1;
   const isNum = (c: { key: string; format?: string }) => c.format === 'number' || (paged[0] && typeof paged[0][c.key] === 'number');
+  // the row button's words, and its accessible name: the words and the row's first column
+  const action = typeof props.rowActionLabel === 'string' && props.rowActionLabel.trim() ? props.rowActionLabel.trim() : String(props.rowAction ?? '');
+  const rowName = (r: Record<string, unknown>) => { const lead = columns[0] ? format(r[columns[0].key], columns[0].format).trim() : ''; return lead ? `${action} ${lead}` : action; };
+  // the scrolling wrapper is a named, focusable region (D-F11), so a keyboard scrolls it and a screen reader names it by its columns
+  const tableName = `Table of ${columns.map(c => c.title ?? c.key).join(', ') || 'rows'}`;
+  // "Chart this" (srad/agentspaces-geo.md GEO-D-04): the rows shown, as a chart whose spec is guessed from the columns
+  const { tokens } = useLook();
+  const [charted, setCharted] = useState(false);
+  const guessed = useMemo(() => guessSpec(columns.map(c => c.key), rows), [columns, rows]);
+  if (charted && guessed) {
+    return (
+      <div className="bma-datatable" data-component="DataTable" data-charted="yes">
+        <VisualizeView spec={guessed} rows={shown} hues={tokens.color.categorical} onClose={() => setCharted(false)} />
+      </div>
+    );
+  }
   return (
     <div className="bma-datatable" data-component="DataTable" data-virtual={virtual ? 'yes' : 'no'}>
       <div className="bma-table-tools">
         {props.filter !== false ? <input type="search" placeholder="Filter" aria-label="filter rows" value={filter} onChange={e => { setFilter(e.target.value); setPage(0); }} /> : null}
         <span className="bma-muted bma-small">{shown.length === rows.length ? `${rows.length} ${noun(rows.length)}` : `${shown.length} of ${rows.length} ${noun(rows.length)}`}</span>
+        {guessed ? <button type="button" className="bma-btn" onClick={() => setCharted(true)} title={`a ${guessed.mark} chart of ${guessed.y.join(', ')} by ${guessed.x}`}>Chart this</button> : null}
         {pageSize && pages > 1 ? <span className="bma-small"><button type="button" className="bma-btn" disabled={page === 0} onClick={() => setPage(p => p - 1)}>‹</button> page {page + 1} of {pages} <button type="button" className="bma-btn" disabled={page >= pages - 1} onClick={() => setPage(p => p + 1)}>›</button></span> : null}
       </div>
-      <div className="bma-table-wrap" ref={body} style={virtual ? { maxHeight: VIEW_H } : undefined} onScroll={e => setScrollTop((e.target as HTMLDivElement).scrollTop)}>
+      <div className="bma-table-wrap" ref={body} tabIndex={0} role="region" aria-label={tableName} style={virtual ? { maxHeight: VIEW_H } : undefined} onScroll={e => setScrollTop((e.target as HTMLDivElement).scrollTop)}>
         <table className="bma-table">
-          <thead><tr>{columns.map(c => <th key={c.key} className={isNum(c) ? 'num' : ''} style={c.width ? { width: c.width } : undefined} onClick={() => setSort(s => (s && s.key === c.key ? { key: c.key, dir: s.dir === 1 ? -1 : 1 } : { key: c.key, dir: 1 }))} aria-sort={sort?.key === c.key ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none'}>{c.title ?? c.key}{sort?.key === c.key ? (sort.dir === 1 ? ' ▲' : ' ▼') : ''}</th>)}{props.rowAction ? <th /> : null}</tr></thead>
+          <thead><tr>{columns.map(c => <th key={c.key} className={isNum(c) ? 'num' : ''} style={c.width ? { width: c.width } : undefined} onClick={() => setSort(s => (s && s.key === c.key ? { key: c.key, dir: s.dir === 1 ? -1 : 1 } : { key: c.key, dir: 1 }))} aria-sort={sort?.key === c.key ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none'}>{c.title ?? c.key}{sort?.key === c.key ? (sort.dir === 1 ? ' ▲' : ' ▼') : ''}</th>)}{props.rowAction ? <th><span className="as-visually-hidden">Action</span></th> : null}</tr></thead>
           <tbody>
             {virtual && first > 0 ? <tr aria-hidden="true"><td colSpan={columns.length + (props.rowAction ? 1 : 0)} style={{ height: first * ROW_H, padding: 0, border: 0 }} /></tr> : null}
-            {window.map((r, i) => <tr key={first + i} style={virtual ? { height: ROW_H } : undefined}>{columns.map(c => <td key={c.key} className={isNum(c) ? 'num' : ''}>{format(r[c.key], c.format)}</td>)}{props.rowAction ? <td><button type="button" className="bma-btn" onClick={() => ctx.dispatch(props.rowAction, { row: r })}>{props.rowAction}</button></td> : null}</tr>)}
+            {window.map((r, i) => <tr key={first + i} style={virtual ? { height: ROW_H } : undefined}>{columns.map(c => <td key={c.key} className={isNum(c) ? 'num' : ''}>{format(r[c.key], c.format)}</td>)}{props.rowAction ? <td><button type="button" className="bma-btn" aria-label={rowName(r)} onClick={() => ctx.dispatch(props.rowAction, { row: r })}>{action}</button></td> : null}</tr>)}
             {virtual && last < paged.length ? <tr aria-hidden="true"><td colSpan={columns.length + (props.rowAction ? 1 : 0)} style={{ height: (paged.length - last) * ROW_H, padding: 0, border: 0 }} /></tr> : null}
             {!paged.length ? <tr><td colSpan={columns.length + (props.rowAction ? 1 : 0)} className="bma-muted">No row{filter ? ' matches the filter' : ' yet'}.</td></tr> : null}
           </tbody>

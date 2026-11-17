@@ -5,8 +5,8 @@
  */
 // The accessibility check of the gallery: serves dist/ on a free port, opens dist/gallery.html in headless Chrome over
 // the DevTools protocol in light and in dark mode, waits for every golden to draw, runs axe-core over the page twice
-// (as drawn, then with every menu open), and fails on any serious or critical violation. It writes what it found to
-// dist/axe.json. Without Chrome it says so and stops, as the platform's gallery shot does.
+// (as drawn, then with every menu open), and fails on any violation of any impact (GEO-Q-31: the minor and moderate
+// ones were fixed, so none may come back). It writes what it found to dist/axe.json. Without Chrome it says so and stops, as the platform's gallery shot does.
 //   node tools/gallery-axe.mjs
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
@@ -47,14 +47,23 @@ try {
     await new Promise(r => setTimeout(r, 800));
     await evaluate(AXE);
     for (const pass of ['drawn', 'menus open']) {
-      if (pass === 'menus open') await evaluate(`[...document.querySelectorAll('[data-component="Menu"] > button:not([disabled])')].forEach(b => b.click()); true`);
+      // a Menu's and a LayerMenu's lists are hidden until their trigger opens them, and axe skips hidden content, so the
+      // second pass opens every one and fails when one stayed shut: an unchecked list would pass as no violation
+      if (pass === 'menus open') {
+        const opened = await evaluate(`(() => { const b = [...document.querySelectorAll('[data-component="Menu"] > button:not([disabled]), [data-component="LayerMenu"] > button:not([disabled])')];
+          b.forEach(x => x.click()); return b.length; })()`);
+        await new Promise(r => setTimeout(r, 300));
+        const shut = await evaluate(`[...document.querySelectorAll('[data-component="Menu"] > button:not([disabled]), [data-component="LayerMenu"] > button:not([disabled])')].filter(x => x.getAttribute('aria-expanded') !== 'true').length`);
+        console.log(`gallery-axe: ${mode} mode, ${opened} menu(s) opened, ${shut} still shut`);
+        if (shut) { console.log('gallery-axe: a menu did not open, so its list goes unchecked'); failed += shut; }
+      }
       await new Promise(r => setTimeout(r, 300));
       const found = JSON.parse(await evaluate(`axe.run(document, { resultTypes: ['violations'] }).then(r => JSON.stringify(r.violations.map(v => ({ id: v.id, impact: v.impact, help: v.help, nodes: v.nodes.slice(0, 5).map(n => n.target.join(' ')) }))))`, true));
       const serious = found.filter(v => v.impact === 'serious' || v.impact === 'critical');
       report[`${mode}, ${pass}`] = found;
-      failed += serious.length;
+      failed += found.length;
       console.log(`gallery-axe: ${mode} mode, ${pass}: ${found.length} violation(s), ${serious.length} serious or critical`);
-      for (const v of serious) console.log(`  ${v.impact} ${v.id}: ${v.help}\n    ${v.nodes.join('\n    ')}`);
+      for (const v of found) console.log(`  ${v.impact} ${v.id}: ${v.help}\n    ${v.nodes.join('\n    ')}`);
     }
   }
 } finally {
@@ -64,5 +73,5 @@ try {
 }
 writeFileSync('dist/axe.json', JSON.stringify({ report, errors }, null, 2) + '\n');
 if (errors.length) { console.log('gallery-axe: the page threw:\n  ' + errors.join('\n  ')); process.exit(1); }
-if (failed) { console.log(`gallery-axe: FAILED, ${failed} serious or critical violation(s)`); process.exit(1); }
-console.log('gallery-axe: no serious or critical violation in either mode');
+if (failed) { console.log(`gallery-axe: FAILED, ${failed} violation(s)`); process.exit(1); }
+console.log('gallery-axe: no violation in either mode');

@@ -13,7 +13,7 @@
 // after a confirmation); the host applies the three actions. Choosing a file opens it in the FilePreview named by
 // `preview`. FileShare draws through it as a flat list, with its notice and its attestation box.
 import { createElement, useEffect, useMemo, useRef, useState } from 'react';
-import { define, useData, type Ctx } from '../../renderer/implementation';
+import { define, useArrived, useData, type Ctx } from '../../renderer/implementation';
 import type { FileTreeProps } from '../../generated/props';
 import { MenuView, type MenuItem } from '../viz/Menu';
 import { attachToChat, previewPath } from '../../chat/links';
@@ -154,7 +154,10 @@ export function FileTreeView({ o, ctx }: { o: TreeOptions; ctx: Ctx }) {
       else setSay('shared with the group');
     } else if (item.id === 'rename' || item.id === 'remove') setAsk({ kind: item.id, file: f });
   };
-  const loading = raw === undefined;
+  // loading only until the page's data first arrives: a path the data then lacks has no binding (a FileShare used as a
+  // drop target), and shows the empty words
+  const arrived = useArrived(ctx);
+  const loading = raw === undefined && !arrived;
   const broken = raw !== undefined && !Array.isArray(raw);
   const label = String(o.label || 'Files');
   return (

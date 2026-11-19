@@ -5,7 +5,9 @@
 // agentspaces-viz/Notification: alerts or incidents bound to the data model, grouped by incident, group, or not at all; each
 // carries its severity as a status colour with its word, an acknowledge action, and a route action.
 // The detail property names the item field drawn as a second line, and routeLabel the route button's words.
-import { useMemo } from 'react';
+// An item's time reads to the minute in UTC ("14:02 UTC", with its date when it is not today), the instant itself in
+// the time element, never a raw instant with its nanoseconds.
+import { useMemo, type ReactNode } from 'react';
 import { define, useRows } from '../../renderer/implementation';
 import type { NotificationProps } from '../../generated/props';
 
@@ -28,7 +30,7 @@ export const Notification = define<NotificationProps>('Notification', ({ props, 
           {list.map((i, n) => { const sev = String(i.severity ?? 'warning');
             return <div key={i.id ?? n} className={`bma-notification bma-status-${sev}`} aria-live="polite">
               <span className={`bma-status bma-status-${sev} bma-small`}>{sev}</span>
-              <span><b>{String(i.title ?? i.id ?? '')}</b>{i.group ? <span className="bma-pill" style={{ marginLeft: 6 }}>{String(i.group)}</span> : null}{props.detail && i[props.detail] !== undefined && i[props.detail] !== null && String(i[props.detail]) ? <div className="detail">{String(i[props.detail])}</div> : null}<div className="when">{String(i.at ?? '')}</div></span>
+              <span><b>{String(i.title ?? i.id ?? '')}</b>{i.group ? <span className="bma-pill" style={{ marginLeft: 6 }}>{String(i.group)}</span> : null}{props.detail && i[props.detail] !== undefined && i[props.detail] !== null && String(i[props.detail]) ? <div className="detail">{String(i[props.detail])}</div> : null}<div className="when">{whenText(i.at)}</div></span>
               <span>{i.acknowledged ? <span className="bma-muted bma-small">acknowledged</span> : <button type="button" className="bma-btn primary" onClick={() => ctx.dispatch(props.ackAction, { id: i.id, incident: i.incident ?? i.id })} aria-label={`Acknowledge: ${String(i.title ?? i.id ?? '')}`}>Acknowledge</button>}
                 {props.routeAction ? <button type="button" className="bma-btn" style={{ marginLeft: 4 }} onClick={() => ctx.dispatch(props.routeAction, { id: i.id })} aria-label={`${props.routeLabel || 'Route'}: ${String(i.title ?? i.id ?? '')}`}>{props.routeLabel || 'Route'}</button> : null}</span>
             </div>; })}
@@ -37,3 +39,16 @@ export const Notification = define<NotificationProps>('Notification', ({ props, 
     </div>
   );
 });
+
+const pad = (n: number) => String(n).padStart(2, '0');
+/** An item's time to the minute in UTC, its date when it is not today; what does not read as an instant, as it is. */
+function whenText(at: unknown, now = Date.now()): ReactNode {
+  if (typeof at !== 'string' || !at) return '';
+  const ms = Date.parse(at);
+  if (!Number.isFinite(ms)) return at;
+  const d = new Date(ms), today = new Date(now);
+  const day = `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+  const same = d.getUTCFullYear() === today.getUTCFullYear() && d.getUTCMonth() === today.getUTCMonth() && d.getUTCDate() === today.getUTCDate();
+  const text = `${same ? '' : day + ' '}${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC`;
+  return <time dateTime={at} title={at}>{text}</time>;
+}

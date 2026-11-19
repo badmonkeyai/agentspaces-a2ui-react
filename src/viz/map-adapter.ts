@@ -14,7 +14,8 @@ import { IconLayer, PathLayer, PolygonLayer, GeoJsonLayer, ScatterplotLayer, Tex
 import { HeatmapLayer } from '@deck.gl/aggregation-layers';
 import type { Layer, PickingInfo } from '@deck.gl/core';
 import { KeyOrder, TrailBook, headingOf, iconName, iconUrl, labelOf, number, polygonOf, positioned, trailOf, boundsOf, type MapLayer, type Row } from './geo';
-import { anchorOf, clusterPoints, featureBounds, lookOf, pointsOf, type Feature, type PointItem, type FeatureKindRow, type FeatureLayer } from './features';
+import { anchorOf, clusterPoints, featureBounds, fitPadding, lookOf, pointsOf, positionsOf, type Feature, type MapInsets, type PointItem, type FeatureKindRow, type FeatureLayer } from './features';
+export type { MapInsets } from './features';
 import type { BasemapStyle } from './basemaps';
 import { LABEL_PAD, LABEL_SIZE, placeLabels, rankLabels, type PlacedLabel } from './labels';
 
@@ -67,14 +68,14 @@ function inkOn([r, g, b]: Rgb): Rgb {
   const y = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
   return y > 0.22 ? [19, 25, 31] : [255, 255, 255];
 }
-interface Chip { key: string; position: [number, number]; label: string; dy: number; lit: boolean }
+interface Chip { key: string; position: [number, number]; label: string; dy: number; lit: boolean; pin?: Rgb }
 /** The colours of a label chip: clear when left out, the accent when lit (selected), else the mode's translucent chip. */
 function chipColors(dark: boolean, accent: Rgb) {
   const ink: Rgb = dark ? [229, 234, 240] : [32, 44, 56];
   return {
     text: (shown: Set<string>) => (d: Chip) => (!shown.has(d.key) ? CLEAR : d.lit ? [...inkOn(accent), 255] : [...ink, 255]),
     back: (shown: Set<string>) => (d: Chip) => (!shown.has(d.key) ? CLEAR : d.lit ? [...accent, 240] : dark ? [19, 25, 31, 214] : [255, 255, 255, 226]),
-    border: (shown: Set<string>) => (d: Chip) => (!shown.has(d.key) ? CLEAR : d.lit ? [...accent, 255] : dark ? [61, 74, 86, 200] : [195, 204, 212, 220]),
+    border: (shown: Set<string>) => (d: Chip) => (!shown.has(d.key) ? CLEAR : d.lit ? [...accent, 255] : d.pin ? [...d.pin, 255] : dark ? [61, 74, 86, 200] : [195, 204, 212, 220]),
   };
 }
 /** A TextLayer of label chips; `shown` names the chips drawn, the rest are clear. The glyphs come from the labels
@@ -82,14 +83,16 @@ function chipColors(dark: boolean, accent: Rgb) {
 function chipLayer(id: string, data: Chip[], shown: Set<string>, colors: ReturnType<typeof chipColors>, font: string, version: number, transitions?: Record<string, unknown>) {
   return new TextLayer({ id, data, getPosition: (d: Chip) => d.position, getText: (d: Chip) => d.label, getSize: LABEL_SIZE,
     getColor: colors.text(shown) as never, getPixelOffset: (d: Chip) => [0, d.dy], getTextAnchor: 'middle', getAlignmentBaseline: 'top',
-    fontFamily: font, fontWeight: 500, characterSet: 'auto', background: true, getBackgroundColor: colors.back(shown) as never, getBorderColor: colors.border(shown) as never, getBorderWidth: 1,
+    fontFamily: font, fontWeight: 500, characterSet: 'auto', background: true, getBackgroundColor: colors.back(shown) as never, getBorderColor: colors.border(shown) as never,
     backgroundBorderRadius: 4, backgroundPadding: LABEL_PAD, transitions: transitions as never,
-    updateTriggers: { getColor: [version], getBackgroundColor: [version], getBorderColor: [version] } });
+    getBorderWidth: ((d: Chip) => (d.pin ? 2 : 1)) as never,
+    updateTriggers: { getColor: [version], getBackgroundColor: [version], getBorderColor: [version], getBorderWidth: [version] } });
 }
 /** The chips a map shows now: the lit ones and the hovered one always, the rest by rank where they fit on the screen. */
 function shownChips(map: maplibregl.Map, container: HTMLElement, ranked: Chip[], hovered?: string): Set<string> {
   const placed: PlacedLabel[] = [];
-  const always = (c: Chip) => c.lit || c.key === hovered;
+  // a picked key's chip shows at any zoom (GEO-M-10), as the selected one and the hovered one do
+  const always = (c: Chip) => c.lit || Boolean(c.pin) || c.key === hovered;
   for (const pass of [true, false]) {
     for (const c of ranked) {
       if (always(c) !== pass) continue;
@@ -237,17 +240,25 @@ export interface GeoDrawOptions {
   /** The areas the layout's windows watch, outlined in the accent (a watchbox's area). */
   overlays?: ReadonlyArray<{ key: string; geometry: { type: string; coordinates: unknown }; label: string }>;
   accent?: string;
+  /**
+   * The pick set as the map draws it (GEO-M-10, ./features applyPicks): each picked feature's hue (colour, fill and
+   * stroke, over a white halo), one chip per picked key at any zoom, and the layers drawn at half opacity meanwhile.
+   */
+  picks?: { hue: ReadonlyMap<string, string>; chips: ReadonlyArray<{ key: string; feature: Feature; hue: string }>; dimmed: ReadonlySet<number> };
 }
 
 export interface GeoAdapter {
   setFeatures(layers: FeatureLayer[], options: GeoDrawOptions): void;
-  /** Flies to a feature: a point at zoom 14, a line or a polygon fitted to its bounds. */
-  flyTo(feature: Feature): void;
   /**
-   * Fits the view to features (the first draw with no kept view). Returns whether it did: a container with no size yet
-   * (a hidden page or window) is not fitted, and the caller tries again once it has one.
+   * Flies to a feature: a point at zoom 14, a line or a polygon fitted to its bounds. With insets (the windows docked over
+   * the map, px from each side), the feature lands in the middle of the part of the map they leave visible.
    */
-  fit(features: readonly Feature[]): boolean;
+  flyTo(feature: Feature, insets?: MapInsets): void;
+  /**
+   * Fits the view to features (the first draw with no kept view), inside the insets when given. Returns whether it did: a
+   * container with no size yet (a hidden page or window) is not fitted, and the caller tries again once it has one.
+   */
+  fit(features: readonly Feature[], insets?: MapInsets, animate?: boolean): boolean;
   view(): GeoView;
   setView(view: GeoView, animate?: boolean): void;
   zoomBy(delta: number): void;
@@ -255,8 +266,21 @@ export interface GeoAdapter {
   resetNorth(): void;
   /** Called when a pan, zoom, rotation or tilt ends; returns the unsubscribe. */
   onViewChange(listener: (view: GeoView) => void): () => void;
+  /** The draw control's shape so far (GEO-F-21), drawn over the features in its colour; nothing clears it. */
+  setSketch(sketch: GeoSketch | undefined): void;
+  /** Turns panning, rotating and the double-click zoom off while a shape is drawn (on), back on after; the wheel still zooms. */
+  setDrawing(on: boolean): void;
+  /** Hears the pointer on the map (press, move, release, double-click) in longitude and latitude; returns the unsubscribe. */
+  onPointer(listener: (e: GeoPointer) => void): () => void;
+  /** The distance on the screen between two places, in CSS pixels. */
+  pixels(a: [number, number], b: [number, number]): number;
   dispose(): void;
 }
+
+/** A drawing in progress: its geometry (a ring or a line) and its corners, in a colour. */
+export interface GeoSketch { geometry: { type: string; coordinates: unknown }; corners: Array<[number, number]>; color?: string }
+/** The pointer on the map: where (longitude, latitude) and where on the screen (CSS pixels from the map's corner). */
+export interface GeoPointer { type: 'down' | 'move' | 'up' | 'dblclick'; at: [number, number]; x: number; y: number }
 
 export async function createGeoMap(container: HTMLElement, options: { view: GeoView; dark: boolean; style: BasemapStyle; fallback: BasemapStyle; onBasemapError: () => void }): Promise<GeoAdapter> {
   if (typeof window === 'undefined' || !('WebGLRenderingContext' in window)) throw new Error('no WebGL');
@@ -289,14 +313,47 @@ export async function createGeoMap(container: HTMLElement, options: { view: GeoV
   let drawn: { base: Layer[]; chips: Array<{ id: string; data: Chip[]; transitions?: Record<string, unknown> }>; ranked: Chip[]; colors: ReturnType<typeof chipColors> } | undefined;
   let hovered: string | undefined;
   let version = 0;
+  // the draw control's sketch sits over the features and under the labels; a sketch's change paints it alone, so a
+  // pointer's move does not rebuild the features' layers
+  let sketch: Layer[] = [];
+  let chipLayers: Layer[] = [];
+  const paint = () => overlay.setProps({ layers: [...(drawn?.base ?? []), ...sketch, ...chipLayers] });
   const relabel = () => {
     if (!drawn) return;
     const d = drawn;
     const shown = shownChips(map, container, d.ranked, hovered);
     version++;
-    overlay.setProps({ layers: [...d.base, ...d.chips.map(c => chipLayer(c.id, c.data, shown, d.colors, font, version, c.transitions))] });
+    chipLayers = d.chips.map(c => chipLayer(c.id, c.data, shown, d.colors, font, version, c.transitions));
+    paint();
   };
   map.on('moveend', relabel);
+  const pointers = new Set<(e: GeoPointer) => void>();
+  let disposed = false;
+  const pointerOf = (type: GeoPointer['type'], e: MouseEvent): GeoPointer => {
+    const r = container.getBoundingClientRect();
+    const x = e.clientX - r.left, y = e.clientY - r.top;
+    const ll = map.unproject([x, y]);
+    return { type, at: [ll.lng, ll.lat], x, y };
+  };
+  const onDown = (e: PointerEvent) => {
+    if (!pointers.size || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    // the press is the drawing's: kept to the end of the drag even when the pointer leaves the map
+    try { container.setPointerCapture(e.pointerId); } catch { /* a synthetic pointer */ }
+    const p = pointerOf('down', e);
+    pointers.forEach(l => l(p));
+  };
+  const onMove = (e: PointerEvent) => { if (pointers.size) { const p = pointerOf('move', e); pointers.forEach(l => l(p)); } };
+  const onUp = (e: PointerEvent) => {
+    if (!pointers.size || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    try { container.releasePointerCapture(e.pointerId); } catch { /* not captured */ }
+    const p = pointerOf('up', e);
+    pointers.forEach(l => l(p));
+  };
+  const onDouble = (e: MouseEvent) => { if (pointers.size) { const p = pointerOf('dblclick', e); pointers.forEach(l => l(p)); } };
+  container.addEventListener('pointerdown', onDown);
+  container.addEventListener('pointermove', onMove);
+  container.addEventListener('pointerup', onUp);
+  container.addEventListener('dblclick', onDouble);
   let zoomBand = Math.floor(map.getZoom());
   map.on('zoomend', () => { const band = Math.floor(map.getZoom()); if (band !== zoomBand) { zoomBand = band; if (last) draw(last.layers, last.options); } });
   const ordered = (layer: number, points: PointItem[]) => {
@@ -319,12 +376,21 @@ export async function createGeoMap(container: HTMLElement, options: { view: GeoV
       if (o.hidden.has(l.index)) continue;
       const id = `geo-${l.index}`;
       const shapes = l.features.filter(f => f.geometry.type !== 'Point' && f.geometry.type !== 'MultiPoint');
-      const looks = new Map(l.features.map(f => [f.id, lookOf(f, l, o.kinds)]));
+      // a picked feature takes its pick hue for colour, fill and stroke (GEO-M-10); a layer without pick is dimmed meanwhile
+      const hueOf = o.picks?.hue;
+      const looks = new Map(l.features.map(f => { const k = lookOf(f, l, o.kinds); const h = hueOf?.get(f.id); return [f.id, h ? { ...k, color: h, fill: h, stroke: h } : k]; }));
+      const opacity = o.picks?.dimmed.has(l.index) ? 0.5 : 1;
       if (o.selected) selectedFeature = l.features.find(f => f.id === o.selected) ?? selectedFeature;
+      // the white halo under each picked feature, so its hue reads against any layer of the same hue
+      const haloShapes = hueOf?.size ? shapes.filter(f => hueOf.has(f.id)) : [];
+      if (haloShapes.length) {
+        deck.push(new GeoJsonLayer({ id: id + '-halo-shapes', data: { type: 'FeatureCollection', features: haloShapes.map(f => ({ type: 'Feature', id: f.id, geometry: f.geometry, properties: { id: f.id } })) } as never,
+          stroked: true, filled: false, lineWidthUnits: 'pixels', getLineColor: [...WHITE, 230] as never, getLineWidth: ((d: { id: string }) => looks.get(d.id)!.width + 4) as never, updateTriggers: { getLineWidth: [looks] } }));
+      }
       if (shapes.length) {
         deck.push(new GeoJsonLayer({
           id: id + '-shapes', data: { type: 'FeatureCollection', features: shapes.map(f => ({ type: 'Feature', id: f.id, geometry: f.geometry, properties: { id: f.id } })) } as never,
-          stroked: true, filled: true, lineWidthUnits: 'pixels', pickable: true,
+          stroked: true, filled: true, lineWidthUnits: 'pixels', pickable: true, opacity,
           getFillColor: ((d: { id: string }) => { const k = looks.get(d.id)!; return [...rgb(k.fill), Math.round(k.opacity * 255)]; }) as never,
           getLineColor: ((d: { id: string }) => rgb(looks.get(d.id)!.stroke)) as never,
           getLineWidth: ((d: { id: string }) => looks.get(d.id)!.width) as never,
@@ -340,32 +406,45 @@ export async function createGeoMap(container: HTMLElement, options: { view: GeoV
       const color = rgb(l.color);
       if (clusters.length) {
         deck.push(new ScatterplotLayer({ id: id + '-clusters', data: clusters, getPosition: (c: { position: [number, number] }) => c.position, getRadius: (c: { count: number }) => 12 + Math.min(18, Math.log2(c.count) * 4), radiusUnits: 'pixels',
-          stroked: true, getFillColor: [...color, 200] as never, getLineColor: WHITE, getLineWidth: 2, lineWidthUnits: 'pixels', pickable: true,
+          stroked: true, getFillColor: [...color, 200] as never, getLineColor: WHITE, getLineWidth: 2, lineWidthUnits: 'pixels', pickable: true, opacity,
           onClick: (info: PickingInfo) => { const c = info.object as { position: [number, number] } | undefined; if (c) map.easeTo({ center: c.position, zoom: Math.min(22, zoom + 2) }); return true; } }));
-        deck.push(new TextLayer({ id: id + '-counts', data: clusters, getPosition: (c: { position: [number, number] }) => c.position, getText: (c: { count: number }) => String(c.count), getSize: 12, getColor: WHITE, getTextAnchor: 'middle', getAlignmentBaseline: 'center', fontFamily: 'system-ui, sans-serif', fontWeight: 600 }));
+        deck.push(new TextLayer({ id: id + '-counts', data: clusters, getPosition: (c: { position: [number, number] }) => c.position, getText: (c: { count: number }) => String(c.count), getSize: 12, getColor: WHITE, getTextAnchor: 'middle', getAlignmentBaseline: 'center', fontFamily: 'system-ui, sans-serif', fontWeight: 600, opacity }));
       }
       const pts = ordered(l.index, points);
       const data = pts.map(f => ({ id: f.partOf, key: l.index + '|' + f.key, at: f.at, position: [(f.geometry.coordinates as number[])[0], (f.geometry.coordinates as number[])[1]] as [number, number], look: looks.get(f.partOf)!, label: f.label, severity: f.severity }));
+      const halos = hueOf?.size ? data.filter(d => hueOf.has(d.id)) : [];
+      if (halos.length) deck.push(new ScatterplotLayer({ id: id + '-halo', data: halos, getPosition: (d: { position: [number, number] }) => d.position, getRadius: (d: { look: { size: number; icon: string } }) => (d.look.icon ? d.look.size * 0.55 : Math.max(3, d.look.size / 4)) + 3, radiusUnits: 'pixels',
+        getFillColor: [...WHITE, 230] as never, transitions: t }));
       const rings = data.filter(d => statusRgb(d.severity));
-      if (rings.length) deck.push(new ScatterplotLayer({ id: id + '-severity', data: rings, getPosition: (d: { position: [number, number] }) => d.position, getRadius: (d: { look: { size: number } }) => d.look.size * 0.62, radiusUnits: 'pixels', stroked: true, filled: false, getLineColor: ((d: { severity?: string }) => statusRgb(d.severity)) as never, getLineWidth: 2, lineWidthUnits: 'pixels', transitions: t }));
+      if (rings.length) deck.push(new ScatterplotLayer({ id: id + '-severity', data: rings, getPosition: (d: { position: [number, number] }) => d.position, getRadius: (d: { look: { size: number } }) => d.look.size * 0.62, radiusUnits: 'pixels', stroked: true, filled: false, getLineColor: ((d: { severity?: string }) => statusRgb(d.severity)) as never, getLineWidth: 2, lineWidthUnits: 'pixels', transitions: t, opacity }));
       const icons = data.filter(d => d.look.icon);
       const dots = data.filter(d => !d.look.icon);
       const select = (info: PickingInfo) => { if (info.object) o.onSelect((info.object as { id: string }).id); return true; };
       // a hovered point shows its label, whatever the others' rank
       const hover = (info: PickingInfo) => { const k = (info.object as { key?: string } | undefined)?.key; if (k !== hovered) { hovered = k; relabel(); } };
       if (dots.length) deck.push(new ScatterplotLayer({ id: id + '-dots', data: dots, getPosition: (d: { position: [number, number] }) => d.position, getRadius: (d: { look: { size: number } }) => Math.max(3, d.look.size / 4), radiusUnits: 'pixels', stroked: true,
-        getFillColor: ((d: { look: { color: string } }) => rgb(d.look.color)) as never, getLineColor: options.dark ? [10, 10, 10] : WHITE, getLineWidth: 1, lineWidthUnits: 'pixels', pickable: true, onClick: select, onHover: hover, transitions: t }));
+        getFillColor: ((d: { look: { color: string } }) => rgb(d.look.color)) as never, getLineColor: options.dark ? [10, 10, 10] : WHITE, getLineWidth: 1, lineWidthUnits: 'pixels', pickable: true, onClick: select, onHover: hover, transitions: t, opacity,
+        updateTriggers: { getFillColor: [looks] } }));
       if (icons.length) deck.push(new IconLayer({ id: id + '-icons', data: icons, getPosition: (d: { position: [number, number] }) => d.position,
         getIcon: ((d: { look: { icon: string } }) => { const name = iconName(d.look.icon); return { url: iconUrl(name), width: 64, height: 64, mask: true, id: name }; }) as never,
         getSize: (d: { look: { size: number } }) => d.look.size, sizeUnits: 'pixels', getColor: ((d: { look: { color: string } }) => rgb(d.look.color)) as never,
         getAngle: ((d: { look: { icon: string; heading?: number } }) => (d.look.icon === 'dot' || d.look.icon === 'pin' || d.look.heading === undefined ? 0 : 360 - d.look.heading)) as never,
-        pickable: true, onClick: select, onHover: hover, transitions: t }));
+        pickable: true, onClick: select, onHover: hover, transitions: t, opacity, updateTriggers: { getColor: [looks] } }));
       // labels as chips where they can be read (past zoom 11, or a layer of a few hundred points), and of those the ones
       // that fit without overlapping, by rank (./labels); the selected feature's on the accent
       const labelled = data.filter(d => d.label && (zoom >= 11 || data.length <= 300))
         .map(d => ({ key: d.key, position: d.position, label: d.label, dy: d.look.size * 0.6, lit: d.id === o.selected, severity: d.severity, at: d.at }));
       if (labelled.length) { chips.push({ id: id + '-labels', data: labelled, transitions: t }); ranks.push(...labelled); }
     }
+    // one chip per picked key, at any zoom, bordered in its hue: on its route, else its first point (GEO-M-10)
+    const pickChips: Chip[] = (o.picks?.chips ?? []).flatMap(c => {
+      const point = c.feature.geometry.type === 'Point' || c.feature.geometry.type === 'MultiPoint';
+      // a route's chip sits on the route, at its middle vertex (its bounds' middle may lie off the line)
+      const along = point ? [] : positionsOf(c.feature.geometry);
+      const at = along.length ? [along[Math.floor(along.length / 2)][0], along[Math.floor(along.length / 2)][1]] as [number, number] : anchorOf(c.feature);
+      return at ? [{ key: 'pick|' + c.key, position: at, label: c.key, dy: point ? 14 : 0, lit: false, pin: rgb(c.hue) }] : [];
+    });
+    if (pickChips.length) { chips.push({ id: 'geo-picks', data: pickChips }); ranks.push(...pickChips); }
     if (o.overlays?.length) {
       const accent = rgb(o.accent ?? '#c97531');
       deck.unshift(new GeoJsonLayer({ id: 'geo-watched', data: { type: 'FeatureCollection', features: o.overlays.map(a => ({ type: 'Feature', geometry: a.geometry, properties: { label: a.label } })) } as never,
@@ -392,15 +471,22 @@ export async function createGeoMap(container: HTMLElement, options: { view: GeoV
   }
   return {
     setFeatures: draw,
-    flyTo(f) {
-      if (f.geometry.type === 'Point') { const at = anchorOf(f)!; map.flyTo({ center: at, zoom: Math.max(14, map.getZoom()), essential: true }); return; }
+    flyTo(f, insets) {
+      const pad = fitPadding(insets, 64, container.clientWidth, container.clientHeight);
+      if (f.geometry.type === 'Point') {
+        // the point at the middle of the visible part: an offset from the container's centre, which (unlike a camera
+        // padding) the map does not keep for later moves
+        const at = anchorOf(f)!;
+        map.flyTo({ center: at, zoom: Math.max(14, map.getZoom()), offset: [(pad.left - pad.right) / 2, (pad.top - pad.bottom) / 2], essential: true });
+        return;
+      }
       const b = featureBounds([f]);
-      if (b) map.fitBounds(b, { padding: 64, maxZoom: 16, duration: 800 });
+      if (b) map.fitBounds(b, { padding: pad, maxZoom: 16, duration: 800 });
     },
-    fit(features) {
+    fit(features, insets, animate = false) {
       const b = featureBounds(features);
       if (!b || container.clientWidth <= 0 || container.clientHeight <= 0) return false;
-      map.resize(); map.fitBounds(b, { padding: 48, maxZoom: 13, duration: 0 });
+      map.resize(); map.fitBounds(b, { padding: fitPadding(insets, 48, container.clientWidth, container.clientHeight), maxZoom: animate ? 15 : 13, duration: animate ? 800 : 0 });
       return true;
     },
     view,
@@ -408,6 +494,36 @@ export async function createGeoMap(container: HTMLElement, options: { view: GeoV
     zoomBy(delta) { map.easeTo({ zoom: map.getZoom() + delta, duration: 200 }); },
     resetNorth() { map.easeTo({ bearing: 0, pitch: 0, duration: 300 }); },
     onViewChange(listener) { listeners.add(listener); return () => { listeners.delete(listener); }; },
-    dispose() { listeners.clear(); map.removeControl(overlay as unknown as maplibregl.IControl); overlay.finalize(); map.remove(); },
+    setSketch(s) {
+      // the control clears its sketch as it unmounts, which may come after the map is gone (a new look makes a new map)
+      if (disposed) return;
+      if (!s) { sketch = []; paint(); return; }
+      const c = rgb(s.color ?? '#c97531');
+      const corners = s.corners.map((at, i) => ({ at, first: i === 0 }));
+      sketch = [
+        new GeoJsonLayer({ id: 'geo-sketch', data: { type: 'Feature', geometry: s.geometry, properties: {} } as never, stroked: true, filled: true,
+          getFillColor: [...c, 40] as never, getLineColor: [...c, 255] as never, getLineWidth: 2, lineWidthUnits: 'pixels' }),
+        new ScatterplotLayer({ id: 'geo-sketch-corners', data: corners, getPosition: (d: { at: [number, number] }) => d.at,
+          getRadius: (d: { first: boolean }) => (d.first ? 7 : 5), radiusUnits: 'pixels', stroked: true, getFillColor: WHITE, getLineColor: c, getLineWidth: 2, lineWidthUnits: 'pixels' }),
+      ];
+      paint();
+    },
+    setDrawing(on) {
+      if (disposed) return;
+      const handlers = [map.dragPan, map.dragRotate, map.doubleClickZoom, map.boxZoom];
+      handlers.forEach(h => (on ? h.disable() : h.enable()));
+      map.getCanvas().style.cursor = on ? 'crosshair' : '';
+      // a touch that places a corner or drags a radius is the drawing's, not the page's scroll
+      container.style.touchAction = on ? 'none' : '';
+    },
+    onPointer(listener) { pointers.add(listener); return () => { pointers.delete(listener); }; },
+    pixels(a, b) { const p = map.project(a), q = map.project(b); return Math.hypot(p.x - q.x, p.y - q.y); },
+    dispose() {
+      disposed = true;
+      listeners.clear(); pointers.clear();
+      container.removeEventListener('pointerdown', onDown); container.removeEventListener('pointermove', onMove);
+      container.removeEventListener('pointerup', onUp); container.removeEventListener('dblclick', onDouble);
+      map.removeControl(overlay as unknown as maplibregl.IControl); overlay.finalize(); map.remove();
+    },
   };
 }

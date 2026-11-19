@@ -56,3 +56,57 @@ export function compact(n: number): string {
   if (a >= 1e3) return (n / 1e3).toFixed(1).replace(/\.0$/, '') + 'k';
   return Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/\.?0+$/, '');
 }
+
+/** A label's width at a font size, estimated: a chart draws in its viewBox's units, so the estimate holds at any width. */
+export const textWidth = (text: string, px: number) => text.length * px * 0.62;
+
+const TIME_RE = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/;
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+/** The longest a category's label runs before it is cut with an ellipsis (its full text stays in the marks' tooltips). */
+export const AXIS_LABEL_MAX = 24;
+
+/** One label on an x axis: the category's index, its words, and where it is drawn (x, and the text's anchor). */
+export interface AxisTick { index: number; label: string; x: number; anchor: 'start' | 'middle' | 'end' }
+
+/**
+ * The x axis's labels over categories drawn at centre(i) along a range: as many as fit without two overlapping (an even
+ * stride over the candidates, each label kept inside the range, at least gap apart). Categories that all read as times
+ * (YYYY-MM-DD, with an hh:mm after it or not) are labelled by day when they cover more than one day, a candidate at each
+ * day's first category ("Nov 7"; with the year when they cover more than one), and by hh:mm within one day; any other
+ * category is labelled as it is, cut at AXIS_LABEL_MAX. The words are read from the text, so a time zone never shifts a day.
+ */
+export function axisTicks(categories: readonly string[], centre: (i: number) => number, range: [number, number], px = 11, gap = 8): { ticks: AxisTick[]; time?: 'day' | 'time' } {
+  if (!categories.length) return { ticks: [] };
+  const times = categories.map(c => TIME_RE.exec(c));
+  let candidates: Array<{ index: number; label: string }>;
+  let time: 'day' | 'time' | undefined;
+  if (times.every(Boolean)) {
+    const day = (m: RegExpExecArray) => `${m[1]}-${m[2]}-${m[3]}`;
+    const days = new Set(times.map(m => day(m!)));
+    const years = new Set(times.map(m => m![1]));
+    const dayLabel = (m: RegExpExecArray) => `${MONTHS[Number(m[2]) - 1] ?? m[2]} ${Number(m[3])}${years.size > 1 ? ' ' + m[1] : ''}`;
+    if (days.size > 1 || times.every(m => !m![4])) {
+      time = 'day';
+      candidates = times.map((m, i) => ({ m: m!, i })).filter(({ m, i }) => i === 0 || day(m) !== day(times[i - 1]!)).map(({ m, i }) => ({ index: i, label: dayLabel(m) }));
+    } else {
+      time = 'time';
+      candidates = times.map((m, i) => ({ index: i, label: `${m![4]}:${m![5]}` }));
+    }
+  } else {
+    candidates = categories.map((c, i) => ({ index: i, label: c.length > AXIS_LABEL_MAX ? c.slice(0, AXIS_LABEL_MAX - 1) + '…' : c }));
+  }
+  const [lo, hi] = range;
+  const place = (c: { index: number; label: string }): AxisTick & { left: number; right: number } => {
+    const w = textWidth(c.label, px), x = centre(c.index);
+    if (x - w / 2 < lo) return { ...c, x: lo, anchor: 'start', left: lo, right: lo + w };
+    if (x + w / 2 > hi) return { ...c, x: hi, anchor: 'end', left: hi - w, right: hi };
+    return { ...c, x, anchor: 'middle', left: x - w / 2, right: x + w / 2 };
+  };
+  const placed = candidates.map(place);
+  for (let k = 1; k <= placed.length; k++) {
+    const shown = placed.filter((_, j) => j % k === 0);
+    if (shown.every((t, j) => j === 0 || t.left >= shown[j - 1].right + gap)) return { ticks: shown.map(({ index, label, x, anchor }) => ({ index, label, x, anchor })), time };
+  }
+  const { index, label, x, anchor } = placed[0];
+  return { ticks: [{ index, label, x, anchor }], time };
+}

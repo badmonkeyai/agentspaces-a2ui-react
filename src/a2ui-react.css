@@ -36,6 +36,8 @@
 .as-empty .glyph { font-size: 28px; line-height: 1; margin-bottom: 4px; color: var(--bma-color-accent); }
 .as-empty b { font-size: 16px; font-weight: 550; line-height: 1.3; color: var(--bma-color-ink); }
 .as-empty p { margin: 0; max-width: 44ch; font-size: 12px; line-height: 1.8; color: var(--bma-color-ink-muted); }
+/* an empty state that is one sentence of the design's own (a Watchbox's emptyText) reads at the heading's ink */
+.as-empty:not(:has(> b)) p { font-size: 13px; line-height: 1.6; color: var(--bma-color-ink); }
 .as-link { font: inherit; font-size: 11px; color: var(--bma-color-accent); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: none; }
 .as-link:hover { text-decoration: underline; text-underline-offset: 3px; }
 
@@ -76,6 +78,27 @@
 .bma-table tbody tr:hover td { background: color-mix(in srgb, var(--bma-color-ink) 5%, var(--bma-color-surface)); }
 .bma-table tbody tr:last-child td { border-bottom: 0; }
 .bma-table td.num, .bma-table th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* a sort header is a button in its cell: the header's own words and colour, reachable by Tab */
+.bma-table th .as-sort { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; text-align: inherit; white-space: nowrap; }
+.bma-table th .as-sort:hover { color: var(--bma-color-ink); }
+.bma-table th[aria-sort] .as-sort { color: var(--bma-color-ink); }
+/* select (GEO-D-06): the checkbox column, and the picked key's hue as a swatch beside its box */
+.bma-table th.as-pick-col, .bma-table td.as-pick-cell { width: 1%; padding-right: 4px; white-space: nowrap; }
+.bma-table .as-pick-box { margin: 0; vertical-align: -2px; accent-color: var(--bma-color-accent); }
+.bma-table .as-pick-swatch { display: inline-block; width: 10px; height: 10px; margin-left: 6px; border-radius: 50%; vertical-align: -1px; box-shadow: 0 0 0 1px var(--bma-color-surface), 0 0 0 2px var(--bma-color-line); }
+.bma-table tr[data-picked] td { background: color-mix(in srgb, var(--bma-color-ink) 4%, var(--bma-color-surface)); }
+.bma-table td.as-row-actions { white-space: nowrap; }
+/* select.focus (GEO-D-06): the first column's words are a button that reads in the cell's ink, underlined in the accent,
+   so it keeps its contrast on a picked row's tint */
+.bma-table td .as-geo-link { color: inherit; font-weight: inherit; text-decoration: underline; text-decoration-color: var(--bma-color-accent); text-underline-offset: 3px; }
+.bma-table td.as-row-actions .bma-btn + .bma-btn { margin-left: 4px; }
+/* a toolbar action's confirm: a modal over the whole page, the look's panel and its overlay shadow */
+.as-confirm-backdrop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 16px; background: rgb(0 0 0 / 0.45); }
+.as-confirm { width: min(440px, 100%); box-sizing: border-box; padding: 18px 20px 16px; background: var(--bma-color-surface); color: var(--bma-color-ink); border: 1px solid var(--bma-color-line);
+  border-radius: var(--bma-radius-l, calc(var(--bma-radius) * 1.6)); box-shadow: var(--bma-shadow-overlay, 0 12px 32px rgb(0 0 0 / 0.22)); font-family: var(--bma-font-family); }
+.as-confirm-title { margin: 0 0 8px; font-size: 15px; font-weight: 600; line-height: 20px; }
+.as-confirm-text { margin: 0 0 16px; font-size: var(--bma-font-s); line-height: 1.45; color: var(--bma-color-ink-muted); }
+.as-confirm-buttons { display: flex; justify-content: flex-end; gap: 8px; }
 .bma-table td code { font-family: var(--bma-font-mono); font-size: var(--bma-font-xs); display: inline-block; max-width: 60ch; white-space: normal; }
 /* a long table is windowed in fixed 28px rows (DataTable ROW_H): each row stays one line, 5 + 17 + 5 + the 1px rule */
 .bma-datatable[data-virtual="yes"] .bma-table td { padding-top: 5px; padding-bottom: 5px; line-height: 17px; white-space: nowrap; max-width: 40ch; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
@@ -171,9 +194,15 @@
 .bma-report h2 { font-size: var(--bma-font-l); font-weight: 600; margin: var(--bma-space-l) 0 var(--bma-space-s); }
 .bma-report-tools { display: flex; gap: var(--bma-space-s); margin-bottom: var(--bma-space-m); }
 @media print { .bma-report-tools { display: none; } }
-.bma-notifications { display: grid; gap: var(--bma-space-s); }
-.bma-notification { display: grid; grid-template-columns: auto 1fr auto; gap: var(--bma-space-s); align-items: center; padding: 10px 14px; border: 1px solid var(--bma-color-line);
+.bma-notifications { display: grid; gap: var(--bma-space-s); container-type: inline-size; }
+.bma-notification { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--bma-space-s); align-items: center; padding: 10px 14px; border: 1px solid var(--bma-color-line);
   border-left: 2px solid var(--bma-status-color, var(--bma-color-line)); border-radius: var(--bma-radius); background: var(--bma-color-panel); }
+/* a narrow column (a window beside the map): the actions take their own row under the text and wrap, never past the edge */
+@container (max-width: 480px) {
+  .bma-notification { grid-template-columns: auto minmax(0, 1fr); align-items: start; }
+  .bma-notification > :last-child { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 4px; }
+  .bma-notification > :last-child > .bma-btn { margin-left: 0 !important; }
+}
 .bma-notification .when { font-size: var(--bma-font-xs); font-family: var(--bma-font-mono); color: var(--bma-color-ink-muted); }
 /* h3, one under a page's section */
 .bma-notification-group > h3 { margin: var(--bma-space-s) 0; font-size: 10px; font-weight: 650; letter-spacing: 0.12em; text-transform: uppercase; color: var(--bma-color-ink-muted); }
@@ -418,11 +447,21 @@
    layer menu. Over the map the legend is a row of chips at the bottom left and the view controls sit at the bottom
    right above the attribution; both keep clear of docked windows through --as-dock-left, --as-dock-right and
    --as-dock-bottom (px, set by the GeoLayout on its stage; 0px elsewhere). */
-.as-geomap { position: relative; min-height: 420px; height: 100%; border: 1px solid var(--bma-color-line); border-radius: var(--bma-radius-l, calc(var(--bma-radius) * 1.6)); overflow: hidden; display: flex; flex-direction: column; }
-.as-geomap .canvas { position: absolute; inset: 0; }
+/* the chips' lift off the foot: clear of the attribution's line when the map shows one, and further off a window docked
+   at the foot, so the chips never read as that window's own */
+.as-geomap:has(> .attribution) { --as-legend-lift: 24px; }
+.as-geo-stage[data-dock-bottom] .as-geomap { --as-legend-lift: 18px; }
+.as-geo-stage[data-dock-bottom] .as-geomap:has(> .attribution) { --as-legend-lift: 26px; }
+/* clip, not hidden: a clipped box is no scroll container, so a script's scrollIntoView on the chips cannot slide the map */
+.as-geomap { position: relative; min-height: 420px; height: 100%; border: 1px solid var(--bma-color-line); border-radius: var(--bma-radius-l, calc(var(--bma-radius) * 1.6)); overflow: clip; display: flex; flex-direction: column; }
+.as-geomap .canvas { position: absolute; inset: 0; overflow: clip; }
+/* the one rule of MapLibre's own stylesheet the map needs (a page need not load that sheet): the canvas out of the line
+   box, at the map's corner. As an inline box the canvas grew its container by a descender, past the map's foot, and the
+   map then had something to scroll */
+.as-geomap .maplibregl-canvas { position: absolute; left: 0; top: 0; display: block; }
 .as-geomap .canvas:focus-visible { outline: 2px solid var(--bma-color-accent); outline-offset: -2px; }
 .as-geomap[data-state="fallback"] .canvas, .as-geomap[data-state="loading"] .canvas { display: none; }
-.as-geomap .legend { position: absolute; z-index: 3; left: calc(var(--as-dock-left, 0px) + 12px); bottom: calc(var(--as-dock-bottom, 0px) + 12px);
+.as-geomap .legend { position: absolute; z-index: 3; left: calc(var(--as-dock-left, 0px) + 12px); bottom: calc(var(--as-dock-bottom, 0px) + var(--as-legend-lift, 12px));
   max-width: calc(100% - var(--as-dock-left, 0px) - var(--as-dock-right, 0px) - 76px); display: flex; flex-wrap: wrap-reverse; gap: 6px; align-items: center;
   padding: 0; font-size: max(10px, calc(var(--bma-font-xs) - 1px)); background: none; border: 0; pointer-events: none; }
 .as-geomap .legend > * { pointer-events: auto; }
@@ -453,6 +492,23 @@
   box-shadow: var(--bma-shadow-raise, 0 2px 8px rgb(0 0 0 / 0.18)); }
 .as-geomap .controls .bma-btn:hover { background: var(--bma-color-bar); }
 /* the tile attribution is required: it draws over the legend chips if a wide legend reaches its corner */
+/* the draw control (GEO-F-21): top right over the map, a button in the design's words and a small panel under it */
+.as-geomap .as-geomap-draw { position: absolute; z-index: 4; top: 12px; right: calc(var(--as-dock-right, 0px) + 12px); display: grid; justify-items: end; gap: 6px; max-width: min(300px, 70%); font-size: var(--bma-font-s); }
+.as-geomap .as-geomap-draw .bma-btn { min-height: 28px; padding: 0 10px; font-size: inherit; background: color-mix(in srgb, var(--bma-color-bar) 90%, transparent); box-shadow: var(--bma-shadow-raise, 0 2px 8px rgb(0 0 0 / 0.18)); }
+/* while a shape is drawn the button stays, pressed and quiet, with its panel under it */
+.as-geomap .as-geomap-draw .draw-toggle:disabled { opacity: 1; color: var(--bma-color-ink-muted); cursor: default; }
+/* in a GeoLayout the time strip floats at the top beside the button: what the button opens starts below the strip's foot */
+.as-geo-map .as-geomap:has(> .time) .as-geomap-draw .draw-panel { margin-top: 8px; }
+.as-geomap .as-geomap-draw .draw-panel { display: grid; gap: 6px; padding: 8px 10px; border: 1px solid var(--bma-color-line); border-radius: 6px; background: var(--bma-color-surface); box-shadow: var(--bma-shadow-raise, 0 2px 8px rgb(0 0 0 / 0.18)); }
+.as-geomap .as-geomap-draw .draw-panel .bma-btn { box-shadow: none; }
+.as-geomap .as-geomap-draw .draw-hint, .as-geomap .as-geomap-draw .draw-readout, .as-geomap .as-geomap-draw .draw-sent, .as-geomap .as-geomap-draw .draw-error { margin: 0; overflow-wrap: anywhere; }
+.as-geomap .as-geomap-draw .draw-readout { font-family: var(--bma-font-mono); }
+.as-geomap .as-geomap-draw .draw-error { color: var(--bma-color-critical); }
+.as-geomap .as-geomap-draw .draw-field { display: grid; gap: 3px; }
+.as-geomap .as-geomap-draw .draw-field input { font: inherit; padding: 4px 6px; border: 1px solid var(--bma-color-line); border-radius: 4px; background: var(--bma-color-field, var(--bma-color-surface)); color: var(--bma-color-ink); }
+.as-geomap .as-geomap-draw .draw-field input:focus-visible { outline: 2px solid var(--bma-color-accent); outline-offset: 1px; }
+.as-geomap .as-geomap-draw .draw-buttons { display: flex; gap: 6px; justify-content: flex-end; }
+.as-geomap .as-geomap-draw .draw-sent { padding: 2px 8px; border-radius: 4px; background: color-mix(in srgb, var(--bma-color-surface) 86%, transparent); }
 .as-geomap .attribution { position: absolute; z-index: 4; right: calc(var(--as-dock-right, 0px) + 6px); bottom: calc(var(--as-dock-bottom, 0px) + 4px); max-width: 50%; padding: 1px 6px; border-radius: 4px; font-size: 10px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--bma-color-ink-muted); background: color-mix(in srgb, var(--bma-color-surface) 80%, transparent); }
 /* the feature card: a kicker with the kind's dot, the title, the facts, a label/value list, the actions two by two */
@@ -473,6 +529,8 @@
 .as-feature-card .actions .bma-btn.primary { background: var(--bma-color-accent-soft, color-mix(in srgb, var(--bma-color-accent) 12%, transparent)); color: color-mix(in srgb, var(--bma-color-accent) 72%, var(--bma-color-ink)); border-color: var(--bma-color-accent); }
 .as-feature-card .actions .bma-btn.primary:hover { background: color-mix(in srgb, var(--bma-color-accent) 20%, transparent); }
 .as-feature-card.gone { border-left: 2px solid var(--bma-color-warning); }
+.as-feature-card .gone-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; }
+.as-feature-card .gone-actions .bma-btn { min-height: 30px; }
 .as-feature-card.empty { padding: 0; }
 .as-feature-search { position: relative; min-width: 220px; }
 /* a magnifier drawn in CSS, so it takes the look's ink */
@@ -502,8 +560,11 @@
 /* the GeoLayout (srad/agentspaces-geo.md §3.3, GEO-L-01 to L-08): the work bar, the map full screen under it, windows
    over it. The bar holds a title block (a kicker, the title, the lede), the search, the windows as bordered buttons and
    the tools; its background is the bar colour, solid. Every colour comes from the look's tokens. */
-.as-geo-layout { --as-bar-h: 64px; position: relative; display: flex; flex-direction: column; height: 100vh; min-height: 480px; background: var(--bma-color-surface); color: var(--bma-color-ink); overflow: hidden; }
-.as-geo-bar { position: relative; z-index: 40; display: flex; align-items: center; gap: 12px 20px; min-height: var(--as-bar-h); box-sizing: border-box; padding: 10px 20px; background: var(--bma-color-bar); border-bottom: 1px solid var(--bma-color-line); }
+/* the layout is the viewport, exactly: fixed to its four edges, so nothing on the page around it makes the page taller
+   and the page never scrolls; overflow is clipped (clip, not hidden: a clipped box is no scroll container, so a script's
+   scrollIntoView cannot move the bar or the map's foot off screen either). Only a window's body and the lists in it scroll. */
+.as-geo-layout { --as-bar-h: 64px; position: fixed; inset: 0; z-index: 0; display: flex; flex-direction: column; background: var(--bma-color-surface); color: var(--bma-color-ink); overflow: clip; }
+.as-geo-bar { position: relative; z-index: 40; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; min-height: var(--as-bar-h); box-sizing: border-box; padding: 10px 20px; background: var(--bma-color-bar); border-bottom: 1px solid var(--bma-color-line); }
 .as-geo-bar:focus-visible, .as-geo-map:focus-visible, .as-geo-window:focus-visible { outline: 2px solid var(--bma-color-accent); outline-offset: -2px; }
 .as-geo-title { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; min-width: 0; flex: 0 1 auto; }
 .as-geo-title > .as-kicker { line-height: 12px; margin-bottom: 3px; }
@@ -513,25 +574,33 @@
 .as-geo-search:empty { display: none; }
 .as-geo-search .as-feature-search { min-width: 0; }
 .as-geo-search .as-feature-search input { background: var(--bma-color-field); }
-.as-geo-menu { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-left: auto; }
+/* the window chips are a row of their own under the title row, below the kicker, wrapping as the bar narrows, so they
+   never sit over the map or its controls; each chip's label sits under its icon at every width */
+.as-geo-menu { display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px; order: 10; flex: 1 0 100%; min-width: 0; margin: 0; }
 .as-geo-menu-item { font: inherit; font-family: var(--bma-font-family); font-size: 12px; font-weight: 500; letter-spacing: 0; text-transform: none; display: inline-flex; align-items: center; gap: 7px;
   min-height: 32px; padding: 0 12px; box-sizing: border-box; border: 1px solid var(--bma-color-line); border-radius: var(--bma-radius); background: color-mix(in srgb, var(--bma-color-ink) 5%, var(--bma-color-bar));
   color: var(--bma-color-ink-muted); white-space: nowrap; cursor: pointer; transition: background-color .15s var(--bma-ease, ease), border-color .15s var(--bma-ease, ease), color .15s var(--bma-ease, ease); }
+.as-geo-menu-item { flex-direction: column; justify-content: center; gap: 3px; min-height: 40px; min-width: 56px; padding: 3px 10px; font-size: 11px; line-height: 13px; }
+.as-geo-menu-label { display: block; white-space: nowrap; }
 .as-geo-menu-item:hover { color: var(--bma-color-ink); border-color: var(--bma-color-line-strong, color-mix(in srgb, var(--bma-color-ink) 30%, transparent)); }
 .as-geo-menu-item.open { color: color-mix(in srgb, var(--bma-color-accent) 72%, var(--bma-color-ink)); border-color: color-mix(in srgb, var(--bma-color-accent) 60%, transparent); background: var(--bma-color-accent-soft, color-mix(in srgb, var(--bma-color-accent) 12%, transparent)); }
 .as-geo-menu-item:focus-visible { outline: 2px solid var(--bma-color-accent); outline-offset: 2px; }
 .as-geo-tools { display: flex; align-items: center; gap: var(--bma-space-s); font-size: var(--bma-font-xs); }
-.as-geo-title + .as-geo-search + .as-geo-tools, .as-geo-search:empty + .as-geo-tools { margin-left: auto; }
-.as-geo-stage { position: relative; flex: 1 1 auto; min-height: 0; }
-.as-geo-map { position: absolute; inset: 0; }
+.as-geo-tools { margin-left: auto; }
+.as-geo-stage { position: relative; flex: 1 1 auto; min-height: 0; overflow: clip; }
+.as-geo-map { position: absolute; inset: 0; overflow: clip; }
 /* the map fills the stage whatever the surface wraps it in: the surface's wrappers fill the region, and the map is placed
    against the surface (its Column and its card stay as they are) */
 .as-geo-map > .bma-look, .as-geo-map .bma-surfaces, .as-geo-map .bma-surface { height: 100%; }
+/* the surfaces' padding and gap would push the map past the stage's foot (the layer chips cut off): none here, and the
+   surface is not the map's box, the region is, so the map fills the stage exactly whatever wraps it */
+.as-geo-map .bma-surfaces { padding: 0; gap: 0; box-sizing: border-box; }
+.as-geo-map .bma-surface { position: static; }
 .as-geo-map .as-geomap { position: absolute; inset: 0; height: auto; min-height: 0; border: 0; border-radius: 0; }
 /* a window over the map: the panel over the surface, radius-l, the overlay shadow; a 40px head in sentence case with
    borderless icon buttons */
 .as-geo-window { position: absolute; display: flex; flex-direction: column; min-width: 240px; background-color: var(--bma-color-surface); background-image: linear-gradient(var(--bma-color-panel), var(--bma-color-panel));
-  color: var(--bma-color-ink); border: 1px solid var(--bma-color-line); border-radius: var(--bma-radius-l, calc(var(--bma-radius) * 1.6)); box-shadow: var(--bma-shadow-overlay, 0 12px 32px rgb(0 0 0 / 0.22)); overflow: hidden; }
+  color: var(--bma-color-ink); border: 1px solid var(--bma-color-line); border-radius: var(--bma-radius-l, calc(var(--bma-radius) * 1.6)); box-shadow: var(--bma-shadow-overlay, 0 12px 32px rgb(0 0 0 / 0.22)); overflow: clip; box-sizing: border-box; max-width: 100%; max-height: 100%; }
 .as-geo-window[hidden] { display: none; }
 .as-geo-window.moving { opacity: 0.92; }
 .as-geo-window-head { display: flex; align-items: center; gap: 6px; min-height: 40px; box-sizing: border-box; padding: 0 8px 0 14px; cursor: grab; user-select: none; touch-action: none; border-bottom: 1px solid var(--bma-color-line);
@@ -540,7 +609,7 @@
 .as-geo-window-tools { display: inline-flex; gap: 2px; }
 .as-geo-window-tools .bma-btn { min-width: 24px; min-height: 24px; height: 24px; padding: 0 4px; line-height: 1; border-color: transparent; background: transparent; color: var(--bma-color-ink-muted); }
 .as-geo-window-tools .bma-btn:hover { color: var(--bma-color-ink); background: color-mix(in srgb, var(--bma-color-ink) 9%, transparent); border-color: transparent; }
-.as-geo-window-body { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 14px; }
+.as-geo-window-body { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 14px; }
 .as-geo-window-body[hidden] { display: none; }
 .as-geo-window.folded { height: auto !important; }
 .as-geo-window-size { position: absolute; right: 0; bottom: 0; width: 16px; height: 16px; cursor: nwse-resize; touch-action: none; background: linear-gradient(135deg, transparent 50%, var(--bma-color-line-strong, var(--bma-color-line)) 50%); }
@@ -561,8 +630,10 @@
 @media (max-width: 760px) { .as-geo-bar { padding: 8px 12px; } }
 
 /* agentspaces-geo/Watchbox (GEO-W-01 to W-06): newest first, severity as a ring and a word and a 2px rule, arrivals
-   highlighted. A row wraps: the title may take two lines, the age keeps its place, and the actions sit on their own
-   line under the text, so nothing overlaps however narrow the window. */
+   highlighted. A row wraps: the title takes the row's whole width and up to four lines (its full text in the row's title),
+   the meta line carries the kind, the properties and the age (pinned to its right end), and the actions sit on their own
+   line under the text, so nothing overlaps however narrow the window. A done row (the design's done.field) is calmer:
+   muted, its rule and its ring outlined in the line colour rather than filled in the severity's. */
 .as-watchbox { display: grid; gap: var(--bma-space-s); font-size: var(--bma-font-s); min-height: 0; }
 .as-watchbox-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; max-height: 100%; overflow: auto; border-top: 1px solid var(--bma-color-line); }
 .as-watchbox-row { display: flex; flex-wrap: wrap; align-items: stretch; border-left: 2px solid transparent; border-bottom: 1px solid var(--bma-color-line); background: transparent; transition: background-color .15s var(--bma-ease, ease); }
@@ -576,13 +647,19 @@
 .as-watchbox-pick:focus-visible { outline: 2px solid var(--bma-color-accent); outline-offset: -2px; }
 .as-watchbox-row .line1 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; min-width: 0; overflow: hidden; }
 .as-watchbox-row .label { flex: 1 1 9em; min-width: 0; font-weight: 600; color: var(--bma-color-ink); overflow-wrap: anywhere;
-  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; line-clamp: 4; overflow: hidden; }
+.as-watchbox-row .line2 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; min-width: 0; }
+.as-watchbox-row .line2 .meta { flex: 1 1 12em; min-width: 0; overflow-wrap: anywhere; }
 .as-watchbox-row .age { margin-left: auto; white-space: nowrap; font-family: var(--bma-font-mono); font-variant-numeric: tabular-nums; }
-.as-watchbox-row .line2 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.as-watchbox-row.done .label { font-weight: 500; color: var(--bma-color-ink-muted); }
+.as-watchbox-row.done .as-sev { color: var(--bma-color-ink-muted); }
+.as-watchbox-row.done .as-sev .ring { background: transparent; }
+.as-watchbox-row.done:has(.as-sev) { border-left-color: var(--bma-color-line); }
+.as-watchbox-row.done .done-text { color: var(--bma-color-ink); }
 .as-watchbox-actions { flex: 1 0 100%; display: flex; flex-wrap: wrap; gap: 6px; box-sizing: border-box; padding: 0 12px 10px; }
 .as-watchbox-actions .bma-btn { min-height: 28px; padding: 0 10px; font-size: var(--bma-font-xs); }
 .as-sev { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 650; text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap; }
-.as-sev .ring { width: 7px; height: 7px; border-radius: 50%; border: 2px solid var(--as-sev, var(--bma-color-ink-muted)); }
+.as-sev .ring { width: 7px; height: 7px; border-radius: 50%; border: 2px solid var(--as-sev, var(--bma-color-ink-muted)); background: var(--as-sev, var(--bma-color-ink-muted)); }
 .as-sev-info { --as-sev: var(--bma-color-info); }
 .as-sev-warning { --as-sev: var(--bma-color-warning); }
 .as-sev-serious { --as-sev: var(--bma-color-serious); }
@@ -637,6 +714,18 @@
 .as-geo-map .as-geomap .time { position: absolute; top: 12px; left: calc(var(--as-dock-left, 0px) + (100% - var(--as-dock-left, 0px) - var(--as-dock-right, 0px)) / 2); transform: translateX(-50%);
   width: min(520px, calc(100% - var(--as-dock-left, 0px) - var(--as-dock-right, 0px) - 48px)); box-sizing: border-box; border: 1px solid var(--bma-color-line); border-radius: var(--bma-radius-l, calc(var(--bma-radius) * 1.6));
   background: color-mix(in srgb, var(--bma-color-field) 92%, transparent); box-shadow: var(--bma-shadow-raise, 0 2px 8px rgb(0 0 0 / 0.18)); }
+
+/* with a draw control at the top right, the strip keeps clear of it on both sides of the free middle */
+.as-geo-map .as-geomap:has(> .as-geomap-draw) .time { width: min(520px, calc(100% - var(--as-dock-left, 0px) - var(--as-dock-right, 0px) - 2 * var(--as-draw-reserve, 160px))); }
+
+/* the legend's Picked group (GEO-M-10): a swatch, the key and a remove button each, and Clear */
+.as-geomap .as-picked { display: flex; flex: 1 0 100%; flex-wrap: wrap; align-items: center; gap: 6px; pointer-events: none; }
+.as-geomap .as-picked > * { pointer-events: auto; }
+.as-geomap .as-picked-title { font-weight: 600; padding: 0 2px; color: var(--bma-color-ink); text-shadow: 0 1px 2px var(--bma-color-surface); }
+.as-geomap .legend .as-picked-entry { cursor: default; gap: 6px; padding-right: 4px; }
+.as-geomap .legend .as-picked-entry .swatch { width: 10px; height: 10px; box-shadow: 0 0 0 2px #fff; }
+.as-geomap .as-pick-remove { font: inherit; line-height: 1; min-width: 20px; min-height: 20px; padding: 0 4px; border: 0; border-radius: 3px; background: transparent; color: var(--bma-color-ink-muted); cursor: pointer; }
+.as-geomap .as-pick-remove:hover { color: var(--bma-color-ink); background: color-mix(in srgb, var(--bma-color-ink) 9%, transparent); }
 
 /* motion off for those who ask: the colour fades and the small moves stop */
 @media (prefers-reduced-motion: reduce) {

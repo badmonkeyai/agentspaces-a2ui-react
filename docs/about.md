@@ -42,6 +42,25 @@ A host adds its own catalog with `registerComponents(catalogId, implementations)
   - The renderer keeps its processor through React's StrictMode, which runs each effect's cleanup and setup twice in a development build. Calls still waiting when `Surfaces` unmounts end with `CANCELLED`.
 - **Why a call becomes an event inside the renderer.** web_core runs a `functionCall` itself and knows only the catalogs' functions. So `withAgentCalls` rewrites such an action, as its envelope arrives, into an event whose name only this renderer makes. web_core then resolves the event's context on the press as it does for any action.
 
+## Drawing an area on a map
+
+A `GeoMap` with a `draw` option shows a draw control over the map. The renderer adds only the drawing; what an area means is the agent's.
+
+- **The option.** `draw: {action, shapes, label, maxVertices}`. Only `action` is required. `shapes` defaults to circle and polygon, `label` (the button's words) to "Draw an area", and `maxVertices` (3 to 200) to 100.
+- **A circle.** Press at the centre and drag, or click a second point. The radius shows in m or km while drawing.
+- **A polygon.** Click each corner. A double-click, Enter, Finish, or a click on the first corner closes it. Backspace removes the last corner.
+- **From the keyboard.** With the map focused, D opens the shapes on "Circle at the map's centre", which asks for the radius in a field.
+- **The name.** A drawn shape asks for a name: required, 1 to 80 characters after trimming, plain text. Save sends it; Escape or Cancel at any point sends nothing.
+- **What the action carries.** `{shape, name, geometry, center?, radiusMeters?}`.
+  - `geometry` is a GeoJSON `Polygon` with one closed, counter-clockwise ring, every coordinate rounded to 6 decimals.
+  - A circle travels as a 64-vertex ring plus its `center` and `radiusMeters`.
+- **While drawing,** the map does not pan, and the shape shows as an overlay. After Save the overlay clears; the feature the agent publishes is what stays.
+- **Text, never markup.** A name with `<b>` in it is shown as the characters `<b>`.
+- **Where the map cannot draw** (no WebGL), there is no control.
+- **The agent still checks.** Everything a browser sends is untrusted, so the agent validates every field of the action (types, sizes, ranges) before it keeps an area.
+
+The pure parts (`drawSpec`, `drawStep`, `drawContext`, `circleRing`, `polygonRing`) are exported, so a host's or an agent's tests can build the same context without a map.
+
 ## What a bound path holds
 
 Visualize, GraphView and the geo components read their rows or features from a path of the data model, and draw one of four states from what the path holds:

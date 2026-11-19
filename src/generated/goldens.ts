@@ -1013,6 +1013,337 @@ export const GOLDENS: GoldenSurface[] = [
       {
         "createSurface": {
           "catalogId": "agentspaces-viz",
+          "surfaceId": "datatable-select"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "calls"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "columns": [
+                {
+                  "key": "ship",
+                  "title": "Ship"
+                },
+                {
+                  "format": "number",
+                  "key": "calls",
+                  "title": "Calls"
+                }
+              ],
+              "component": "DataTable",
+              "id": "calls",
+              "rows": "/calls",
+              "select": {
+                "clearOn": "port",
+                "focus": "route",
+                "key": "ship",
+                "label": "Show on the map",
+                "map": "harbour",
+                "max": 8
+              },
+              "sort": "-calls"
+            }
+          ],
+          "surfaceId": "datatable-select"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "datatable-select",
+          "value": {
+            "_geo": {
+              "harbour": {
+                "picked": [
+                  "MV Northgate"
+                ]
+              }
+            },
+            "calls": [
+              {
+                "calls": 4,
+                "port": "Liverpool",
+                "route": "route-northgate",
+                "ship": "MV Northgate"
+              },
+              {
+                "calls": 2,
+                "port": "Liverpool",
+                "route": "route-brendan",
+                "ship": "Saint Brendan"
+              }
+            ]
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Show on the map",
+      "Ship",
+      "Calls",
+      "MV Northgate",
+      "Saint Brendan",
+      "Clear (1)"
+    ],
+    "name": "DataTable",
+    "state": "select",
+    "surfaceId": "datatable-select"
+  },
+  {
+    "catalogId": "agentspaces-viz",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-viz",
+          "surfaceId": "datatable-actions"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "runs"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "columns": [
+                {
+                  "key": "name",
+                  "title": "Run"
+                }
+              ],
+              "component": "DataTable",
+              "id": "runs",
+              "rowActions": [
+                {
+                  "action": "run.replay",
+                  "label": "Replay"
+                },
+                {
+                  "action": "run.show",
+                  "label": "Show"
+                }
+              ],
+              "rows": "/runs"
+            }
+          ],
+          "surfaceId": "datatable-actions"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "datatable-actions",
+          "value": {
+            "runs": [
+              {
+                "name": "Morning run"
+              }
+            ]
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Run",
+      "Morning run",
+      "Replay",
+      "Show"
+    ],
+    "name": "DataTable",
+    "state": "actions",
+    "surfaceId": "datatable-actions"
+  },
+  {
+    "catalogId": "agentspaces-viz",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-viz",
+          "surfaceId": "datatable-empty"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "finished"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "columns": [
+                {
+                  "key": "name",
+                  "title": "Finished run"
+                }
+              ],
+              "component": "DataTable",
+              "emptyText": "No run has finished yet.",
+              "id": "finished",
+              "rows": "/finished"
+            }
+          ],
+          "surfaceId": "datatable-empty"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "datatable-empty",
+          "value": {
+            "finished": []
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Finished run",
+      "No run has finished yet."
+    ],
+    "name": "DataTable",
+    "state": "empty",
+    "surfaceId": "datatable-empty"
+  },
+  {
+    "catalogId": "agentspaces-viz",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-viz",
+          "surfaceId": "toolbar-confirm"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "bar"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "actions": [
+                {
+                  "action": "list.clear",
+                  "confirm": {
+                    "no": "Cancel",
+                    "text": "Clear every row of the list?",
+                    "title": "Clear the list",
+                    "yes": "Clear"
+                  },
+                  "label": "Clear the list"
+                }
+              ],
+              "component": "Toolbar",
+              "id": "bar",
+              "title": "Desk"
+            }
+          ],
+          "surfaceId": "toolbar-confirm"
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Desk",
+      "Clear the list"
+    ],
+    "name": "Toolbar",
+    "state": "confirm",
+    "surfaceId": "toolbar-confirm"
+  },
+  {
+    "catalogId": "agentspaces-viz",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-viz",
+          "surfaceId": "toolbar-confirm-bound"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "bar"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "actions": [
+                {
+                  "action": "list.clear",
+                  "confirm": {
+                    "text": "/prompt",
+                    "title": "Clear the list",
+                    "yes": "Clear"
+                  },
+                  "label": "Clear the list"
+                }
+              ],
+              "component": "Toolbar",
+              "id": "bar",
+              "title": "Desk"
+            }
+          ],
+          "surfaceId": "toolbar-confirm-bound"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "toolbar-confirm-bound",
+          "value": {
+            "prompt": "Clear all 3 rows?"
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Desk",
+      "Clear the list"
+    ],
+    "name": "Toolbar",
+    "state": "confirm-bound",
+    "surfaceId": "toolbar-confirm-bound"
+  },
+  {
+    "catalogId": "agentspaces-viz",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-viz",
           "surfaceId": "graph-lit"
         },
         "version": "1.0"
@@ -4110,6 +4441,190 @@ export const GOLDENS: GoldenSurface[] = [
       {
         "createSurface": {
           "catalogId": "agentspaces-geo",
+          "surfaceId": "geoGeoMap-picked"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "harbour"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "component": "GeoMap",
+              "home": {
+                "center": [
+                  -3,
+                  53.4
+                ],
+                "zoom": 12
+              },
+              "id": "harbour",
+              "layers": [
+                {
+                  "kind": "area.berth",
+                  "label": "Berths",
+                  "path": "/berths"
+                },
+                {
+                  "cluster": {
+                    "below": 9
+                  },
+                  "kind": "track.ship*",
+                  "label": "Ships",
+                  "path": "/ships",
+                  "pick": {
+                    "by": "mmsi",
+                    "fit": true,
+                    "show": "all"
+                  },
+                  "style": {
+                    "icon": "ship"
+                  }
+                }
+              ]
+            }
+          ],
+          "surfaceId": "geoGeoMap-picked"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "geoGeoMap-picked",
+          "value": {
+            "_geo": {
+              "harbour": {
+                "picked": [
+                  "235012345"
+                ]
+              }
+            },
+            "berths": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    [
+                      [
+                        -3.01,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.4
+                      ]
+                    ]
+                  ],
+                  "type": "Polygon"
+                },
+                "id": "berth4",
+                "kind": "area.berth",
+                "label": "Berth 4",
+                "properties": {},
+                "schemaVersion": 1,
+                "style": {
+                  "fill": "#29261e",
+                  "opacity": 0.6,
+                  "stroke": "#9a8139"
+                },
+                "type": "Feature"
+              }
+            ],
+            "berthsTotal": 1,
+            "ships": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3.0123,
+                    53.4087
+                  ],
+                  "type": "Point"
+                },
+                "id": "ship217",
+                "kind": "track.ship.cargo",
+                "label": "MV Northgate",
+                "properties": {
+                  "destination": "Berth 4",
+                  "mmsi": "235012345",
+                  "speed_kn": 11.2
+                },
+                "schemaVersion": 1,
+                "severity": "info",
+                "style": {
+                  "heading": 74
+                },
+                "type": "Feature"
+              },
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3.05,
+                    53.45
+                  ],
+                  "type": "Point"
+                },
+                "id": "ship340",
+                "kind": "track.ship.tanker",
+                "label": "Saint Brendan",
+                "properties": {
+                  "mmsi": "235099876",
+                  "speed_kn": 0.4
+                },
+                "schemaVersion": 1,
+                "severity": "warning",
+                "style": {},
+                "type": "Feature"
+              }
+            ],
+            "shipsTotal": 2
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Ships",
+      "Picked",
+      "235012345",
+      "Clear"
+    ],
+    "name": "GeoMap",
+    "state": "picked",
+    "surfaceId": "geoGeoMap-picked"
+  },
+  {
+    "catalogId": "agentspaces-geo",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-geo",
           "surfaceId": "geoFeatureCard"
         },
         "version": "1.0"
@@ -5651,106 +6166,7 @@ export const GOLDENS: GoldenSurface[] = [
         "updateDataModel": {
           "path": "/",
           "surfaceId": "geoWatchbox-loading",
-          "value": {
-            "berths": [
-              {
-                "_at": "2026-11-12T09:14:03Z",
-                "_type": "GeoFeature",
-                "at": "2026-11-12T09:14:03Z",
-                "geometry": {
-                  "coordinates": [
-                    [
-                      [
-                        -3.01,
-                        53.4
-                      ],
-                      [
-                        -3,
-                        53.4
-                      ],
-                      [
-                        -3,
-                        53.41
-                      ],
-                      [
-                        -3.01,
-                        53.41
-                      ],
-                      [
-                        -3.01,
-                        53.4
-                      ]
-                    ]
-                  ],
-                  "type": "Polygon"
-                },
-                "id": "berth4",
-                "kind": "area.berth",
-                "label": "Berth 4",
-                "properties": {},
-                "schemaVersion": 1,
-                "style": {
-                  "fill": "#29261e",
-                  "opacity": 0.6,
-                  "stroke": "#9a8139"
-                },
-                "type": "Feature"
-              }
-            ],
-            "berthsTotal": 1,
-            "ships": [
-              {
-                "_at": "2026-11-12T09:14:03Z",
-                "_type": "GeoFeature",
-                "at": "2026-11-12T09:14:03Z",
-                "geometry": {
-                  "coordinates": [
-                    -3.0123,
-                    53.4087
-                  ],
-                  "type": "Point"
-                },
-                "id": "ship217",
-                "kind": "track.ship.cargo",
-                "label": "MV Northgate",
-                "properties": {
-                  "destination": "Berth 4",
-                  "mmsi": "235012345",
-                  "speed_kn": 11.2
-                },
-                "schemaVersion": 1,
-                "severity": "info",
-                "style": {
-                  "heading": 74
-                },
-                "type": "Feature"
-              },
-              {
-                "_at": "2026-11-12T09:14:03Z",
-                "_type": "GeoFeature",
-                "at": "2026-11-12T09:14:03Z",
-                "geometry": {
-                  "coordinates": [
-                    -3.05,
-                    53.45
-                  ],
-                  "type": "Point"
-                },
-                "id": "ship340",
-                "kind": "track.ship.tanker",
-                "label": "Saint Brendan",
-                "properties": {
-                  "mmsi": "235099876",
-                  "speed_kn": 0.4
-                },
-                "schemaVersion": 1,
-                "severity": "warning",
-                "style": {},
-                "type": "Feature"
-              }
-            ],
-            "shipsTotal": 2
-          }
+          "value": {}
         },
         "version": "1.0"
       }
@@ -5950,6 +6366,214 @@ export const GOLDENS: GoldenSurface[] = [
     "name": "Watchbox",
     "state": "error",
     "surfaceId": "geoWatchbox-error"
+  },
+  {
+    "catalogId": "agentspaces-geo",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-geo",
+          "surfaceId": "geoWatchbox-pick"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "alerts",
+                "harbour"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "actions": [
+                {
+                  "label": "Show its ships",
+                  "name": "show-ships",
+                  "pick": {
+                    "from": "ships"
+                  }
+                }
+              ],
+              "component": "Watchbox",
+              "id": "alerts",
+              "kind": "incident*",
+              "label": "incidents",
+              "map": "harbour",
+              "path": "/incidents"
+            },
+            {
+              "component": "GeoMap",
+              "id": "harbour",
+              "layers": [
+                {
+                  "cluster": {
+                    "below": 9
+                  },
+                  "kind": "track.ship*",
+                  "label": "Ships",
+                  "path": "/ships",
+                  "pick": {
+                    "by": "mmsi",
+                    "fit": true,
+                    "show": "all"
+                  },
+                  "style": {
+                    "icon": "ship"
+                  }
+                }
+              ]
+            }
+          ],
+          "surfaceId": "geoWatchbox-pick"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "geoWatchbox-pick",
+          "value": {
+            "berths": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    [
+                      [
+                        -3.01,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.4
+                      ]
+                    ]
+                  ],
+                  "type": "Polygon"
+                },
+                "id": "berth4",
+                "kind": "area.berth",
+                "label": "Berth 4",
+                "properties": {},
+                "schemaVersion": 1,
+                "style": {
+                  "fill": "#29261e",
+                  "opacity": 0.6,
+                  "stroke": "#9a8139"
+                },
+                "type": "Feature"
+              }
+            ],
+            "berthsTotal": 1,
+            "incidents": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3.02,
+                    53.41
+                  ],
+                  "type": "Point"
+                },
+                "id": "inc7",
+                "kind": "incident.collision",
+                "label": "Near miss off Seacombe",
+                "properties": {
+                  "ships": [
+                    "235012345",
+                    "235099876"
+                  ]
+                },
+                "schemaVersion": 1,
+                "severity": "serious",
+                "style": {},
+                "type": "Feature"
+              }
+            ],
+            "ships": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3.0123,
+                    53.4087
+                  ],
+                  "type": "Point"
+                },
+                "id": "ship217",
+                "kind": "track.ship.cargo",
+                "label": "MV Northgate",
+                "properties": {
+                  "destination": "Berth 4",
+                  "mmsi": "235012345",
+                  "speed_kn": 11.2
+                },
+                "schemaVersion": 1,
+                "severity": "info",
+                "style": {
+                  "heading": 74
+                },
+                "type": "Feature"
+              },
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3.05,
+                    53.45
+                  ],
+                  "type": "Point"
+                },
+                "id": "ship340",
+                "kind": "track.ship.tanker",
+                "label": "Saint Brendan",
+                "properties": {
+                  "mmsi": "235099876",
+                  "speed_kn": 0.4
+                },
+                "schemaVersion": 1,
+                "severity": "warning",
+                "style": {},
+                "type": "Feature"
+              }
+            ],
+            "shipsTotal": 2
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Near miss off Seacombe",
+      "Show its ships"
+    ],
+    "name": "Watchbox",
+    "state": "pick",
+    "surfaceId": "geoWatchbox-pick"
   },
   {
     "catalogId": "agentspaces-geo",

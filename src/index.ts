@@ -8,7 +8,7 @@
 export { Surfaces, withAgentCalls, AGENT_FUNCTION_TIMEOUT_MS, type SurfacesProps, type SurfaceActionEvent, type Envelope, type AgentFunctionCall, type AgentFunctionResult } from './renderer/surfaces';
 export { appendEnvelope, SUPERSEDED } from './renderer/envelopes';
 export { catalogs, declares, registerComponents, registerAlias, BASIC_ID } from './renderer/catalogs';
-export { define, useData, useRows, fmt, uploaders, fileSources, agentFunctions, type Ctx, type ComponentProps, type Implementation, type UploadOptions, type UploadAnswer, type FileRef, type FileSource } from './renderer/implementation';
+export { define, useData, useRows, useArrived, fmt, uploaders, fileSources, agentFunctions, type Ctx, type ComponentProps, type Implementation, type UploadOptions, type UploadAnswer, type FileRef, type FileSource } from './renderer/implementation';
 export { LookAndFeelProvider, useLook } from './look/provider';
 export { cssVariables, stylesheet, modeTokens, withAlpha, DEFAULT_LOOK } from './look/css';
 export { validatePalette, validateLook, type PaletteReport, type PaletteCheck } from './look/palette';
@@ -24,10 +24,16 @@ export { attachToChat, onAttach, previewPath } from './chat/links';
 export { sizeText, accepts, refusalOf, dropFiles, treeRows, badgesOf, parseCsv, pathOf, type FileRow, type DropState, type DropOptions, type TreeNode, type Seen } from './files/files';
 export { ChatView, PAGE_WRITE, registerChatExtra, askChat, type ChatOptions, type ChatExtra } from './components/widgets/Chat';
 export { chipsOf, suggestionsPath, MAX_CHIPS, CHIP_TEXT, CHIP_LABEL, type Chip } from './chat/followups';
-export { featureOf, styleOf, kindMatches, kindOf, featureLayers, featuresState, lookOf, positionsOf, featureBounds, anchorOf, clusterPoints, pointsOf, fold, searchFeatures, cardFields, ageOf, valueText, geoState, byId, capped, viewKey, areaOf, inArea, watchRows, propertyLine, staleText, timeSpan, sliderGrid, inWindow, TIME_WINDOWS, type WatchArea, type Feature, type FeatureKindRow, type FeatureLayer, type FeatureLayerSpec, type FeaturesState, type Cluster, type PointItem, type SearchHit, type Style } from './viz/features';
+export { featureOf, styleOf, kindMatches, kindOf, featureLayers, featuresState, lookOf, positionsOf, featureBounds, anchorOf, clusterPoints, pointsOf, fold, searchFeatures, cardFields, ageOf, valueText, geoState, byId, capped, viewKey, areaOf, inArea, watchRows, propertyLine, staleText, watchboxDone, isWatchboxDone, watchboxDoneText, fitPadding, timeSpan, sliderGrid, inWindow, TIME_WINDOWS, MAX_PICKED, pickSpecOf, cleanPicks, keysOf, pickHue, pickKeyOf, applyPicks, pickedWords, type PickSpec, type PickView, type WatchArea, type WatchboxDone, type MapInsets, type Feature, type FeatureKindRow, type FeatureLayer, type FeatureLayerSpec, type FeaturesState, type Cluster, type PointItem, type SearchHit, type Style } from './viz/features';
+export { usePicks, type Picks } from './viz/pick';
 export { registerBasemap, basemapNames, basemapStyle, plainStyle, type BasemapStyle } from './viz/basemaps';
 export { loadGeo } from './components/geo/load';
+// GeoMap's draw control (GEO-F-21): the design's option read with its defaults, the drawing's state machine, the geodesic
+// circle and the action's context; pure, so a host or an agent's tests reach them without a map
+export { drawSpec, drawStep, drawContext, sketchOf, circleRing, polygonRing, distanceMeters, destination, radiusText, nameOf, round6, wrapLon, IDLE as DRAW_IDLE, DRAW_LABEL, DRAW_MIN_VERTICES, DRAW_MAX_VERTICES, DRAW_DEFAULT_VERTICES, CIRCLE_VERTICES, NAME_MAX as DRAW_NAME_MAX, RADIUS_MIN_M, RADIUS_MAX_M, type DrawSpec, type DrawShape, type DrawState, type DrawEvent, type DrawStep, type DrawContext, type LonLat } from './geo/draw';
+export type { DrawSurface, DrawPointer } from './geo/DrawControl';
 export { specOf, missingColumns, seriesOf, sortCategories, guessSpec, MAX_SERIES, OTHER, type VisualSpec, type VSeries, type VPoint, type Mark, type Aggregate } from './viz/visualize';
+export { axisTicks, textWidth, AXIS_LABEL_MAX, type AxisTick } from './viz/scale';
 export { graphOf, graphOfFeatures, layout as graphLayout, kindHues, graphDrawing, graphViewState, nearestNode, nodeOn, edgeOn, GRAPH_WEBGL_PAST, type Graph, type GNode, type GEdge, type GraphLayout, type Positions, type GraphCamera } from './viz/graph';
 export { VisualizeView } from './components/viz/Visualize';
 export { FileTreeView, type TreeOptions } from './components/widgets/FileTree';
@@ -36,7 +42,7 @@ export { FrameContext, useFrame, useFrameProvider, useBarClaim, type Frame } fro
 export { commands, onCommands, useCommands, type Command } from './frame/commands';
 export { CommandPalette, opensPalette, filterCommands } from './frame/CommandPalette';
 export { Pages, currentPage, bannerOf, BANNER_MAX, type PagesProps, type Navigation, type NavPage, type Layout, type LayoutPane, type SplitLayout, type ConversationLayout, type Area } from './frame/Pages';
-export { GeoPages, GeoWindow, GeoFrameContext, useGeoFrame, useWindowStates, useDetailsWindow, placeDocked, dockedSize, MIN_W, MIN_H, NARROW_PX, type GeoLayout, type GeoWindowSpec, type GeoFrame, type GeoOverlay, type Dock, type WindowState, type GeoWindowProps } from './frame/geo';
+export { GeoPages, GeoWindow, GeoFrameContext, useGeoFrame, useWindowStates, useDetailsWindow, placeDocked, shareOut, dockInsets, dockedSize, fitStates, fitRect, tableNeed, contentHeight, MIN_W, MIN_H, NARROW_PX, TABLE_MIN_W, TABLE_MAX_W, TABLE_MAX_H_SHARE, FIT_MIN_H, DETAILS, type GeoLayout, type GeoWindowSpec, type GeoFrame, type GeoOverlay, type Dock, type DockedPlace, type DockLimits, type WindowState, type GeoWindowProps } from './frame/geo';
 export { Gallery, goldenTitle, type GalleryProps } from './frame/Gallery';
 export { Icon, ICONS } from './frame/icons';
 export { OPEN_CATALOGS, HOSTED, type OpenCatalogId } from './generated/catalogs';

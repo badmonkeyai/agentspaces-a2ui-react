@@ -13,6 +13,9 @@ export interface ChartProps {
   title?: string;
   legend?: "auto" | "always" | "never";
   table?: boolean;
+  "@catalogId"?: string;
+  "@accessibility"?: unknown;
+  "@metadata"?: { extensions?: unknown };
   [extra: string]: unknown;
 }
 
@@ -30,10 +33,13 @@ export interface VisualizeProps {
   title?: string;
   unit?: string;
   table?: "toggle" | "below";
+  "@catalogId"?: string;
+  "@accessibility"?: unknown;
+  "@metadata"?: { extensions?: unknown };
   [extra: string]: unknown;
 }
 
-/** agentspaces-viz: A virtualised table over rows bound to the data model, with sort, filter, paging, and a row action. */
+/** agentspaces-viz: A virtualised table over rows bound to the data model, with sort (each column's header a button), filter, paging, a row action or several, an empty text, and, with select, a checkbox per row that picks the row's key into a map's pick set. */
 export interface DataTableProps {
   id: string;
   component: "DataTable";
@@ -44,6 +50,12 @@ export interface DataTableProps {
   pageSize?: number;
   rowAction?: string;   // the action a row's button dispatches with {row}
   rowActionLabel?: string;   // the words on each row's button; the action's name when absent. The button's accessible name adds the row's first column, so a screen reader tells the rows' buttons apart
+  rowActions?: Array<{ action: string; label: string }>;   // several row buttons, each dispatching its action with {row}, beside rowAction (which stays); each button's accessible name adds the row's first column
+  select?: { key: string; map?: string; max?: number; label?: string; clearOn?: string; focus?: string };   // a leading checkbox per row that adds the row's key to a map's pick set (the agentspaces-geo state rule, picked: in the browser's memory only) or takes it out; picks are kept by key, so they survive sort, filter, paging and scrolling; a picked row shows its pick hue; the toolbar offers Clear (n); past max the table says so in words; a key that leaves the rows leaves the set, and a change of the clearOn column's value empties it, each said in the table's polite live region; Shift with a click picks the range from the last pick, up to max
+  emptyText?: string;   // what the table says while it has no row, in place of "No row yet."
+  "@catalogId"?: string;
+  "@accessibility"?: unknown;
+  "@metadata"?: { extensions?: unknown };
   [extra: string]: unknown;
 }
 
@@ -62,6 +74,9 @@ export interface MapProps {
   table?: boolean;   // a table view of the rows of each layer, the dataviz rule
   markerAction?: string;   // dispatched with the row when an icon or a marker is clicked
   alertAction?: string;   // dispatched with the alert's id and key from an alert box's Acknowledge
+  "@catalogId"?: string;
+  "@accessibility"?: unknown;
+  "@metadata"?: { extensions?: unknown };
   [extra: string]: unknown;
 }
 
@@ -74,6 +89,9 @@ export interface GraphProps {
   layout?: "columns" | "force" | "tree";
   columns?: Array<{ key?: string; label?: string }>;
   nodeAction?: string;
+  "@catalogId"?: string;
+  "@accessibility"?: unknown;
+  "@metadata"?: { extensions?: unknown };
   [extra: string]: unknown;
 }
 
@@ -88,6 +106,9 @@ export interface GraphViewProps {
   map?: string;   // the id of a GeoMap on this surface a node selects on; in a GeoLayout, the layout's map
   selectAction?: string;   // dispatched with the node's id and kind when a person selects it
   title?: string;
+  "@catalogId"?: string;
+  "@accessibility"?: unknown;
+  "@metadata"?: { extensions?: unknown };
   [extra: string]: unknown;
 }
 
@@ -99,6 +120,9 @@ export interface TimelineProps {
   lanes?: string;
   from?: string;
   to?: string;
+  "@catalogId"?: string;
+  "@accessibility"?: unknown;
+  "@metadata"?: { extensions?: unknown };
   [extra: string]: unknown;
 }
 
@@ -109,6 +133,9 @@ export interface ReportProps {
   title: string;
   sections: Array<{ heading?: string; kind: "text" | "chart" | "table" | "graph" | "map"; text?: string; component?: Record<string, unknown> }>;
   export?: Array<"markdown" | "pdf">;
+  "@catalogId"?: string;
+  "@accessibility"?: unknown;
+  "@metadata"?: { extensions?: unknown };
   [extra: string]: unknown;
 }
 
@@ -122,6 +149,9 @@ export interface NotificationProps {
   groupBy?: "incident" | "group" | "none";
   detail?: string;   // the item field shown as a second line under the title, none by default
   routeLabel?: string;   // the route button's label
+  "@catalogId"?: string;
+  "@accessibility"?: unknown;
+  "@metadata"?: { extensions?: unknown };
   [extra: string]: unknown;
 }
 
@@ -132,6 +162,9 @@ export interface FormProps {
   fragment: string;   // a type IRI
   fields?: Array<string>;
   submitAction: string;
+  "@catalogId"?: string;
+  "@accessibility"?: unknown;
+  "@metadata"?: { extensions?: unknown };
   [extra: string]: unknown;
 }
 
@@ -144,6 +177,9 @@ export interface StatProps {
   unit?: string;
   delta?: string;
   status?: string;
+  "@catalogId"?: string;
+  "@accessibility"?: unknown;
+  "@metadata"?: { extensions?: unknown };
   [extra: string]: unknown;
 }
 
@@ -158,6 +194,9 @@ export interface WindowProps {
   width?: number;   // pixels; 0 for the content's width
   appearsWith?: string;   // a path into the data model; the window stays hidden until the path holds a row, then appears (data and visualizations arrive as the agents produce them)
   actions?: Array<{ id: string; label: string; icon?: string; action: { name: string; context?: Record<string, unknown> } }>;   // buttons in the window's header, in the shape of TitleBar.actions
+  "@catalogId"?: string;
+  "@accessibility"?: unknown;
+  "@metadata"?: { extensions?: unknown };
   [extra: string]: unknown;
 }
 
@@ -170,6 +209,9 @@ export interface ConversationProps {
   agent?: string;   // the agent that answers, shown as the counterpart
   placeholder?: string;
   writeAction?: string;   // the action a sent line dispatches with {type: ChatMessage, entry}
+  "@catalogId"?: string;
+  "@accessibility"?: unknown;
+  "@metadata"?: { extensions?: unknown };
   [extra: string]: unknown;
 }
 
@@ -182,16 +224,22 @@ export interface NoticeProps {
   text?: string;   // the text, or a path to it
   dismissAction?: string;
   statusPath?: string;   // a path to the status word, which wins over status when it holds one of the five words
+  "@catalogId"?: string;
+  "@accessibility"?: unknown;
+  "@metadata"?: { extensions?: unknown };
   [extra: string]: unknown;
 }
 
-/** agentspaces-viz: A row of actions: each a label and the action it dispatches, with an optional context. */
+/** agentspaces-viz: A row of actions: each a label and the action it dispatches, with an optional context, and an optional confirm step that asks first in a modal dialog. */
 export interface ToolbarProps {
   id: string;
   component: "Toolbar";
-  actions: Array<{ label: string; action: string; primary?: boolean; context?: Record<string, unknown> }>;
+  actions: Array<{ label: string; action: string; primary?: boolean; context?: Record<string, unknown>; confirm?: { title: string; text?: string; yes?: string; no?: string } }>;
   title?: string;
   menu?: string;   // the id of a Menu drawn as the toolbar's overflow
+  "@catalogId"?: string;
+  "@accessibility"?: unknown;
+  "@metadata"?: { extensions?: unknown };
   [extra: string]: unknown;
 }
 
@@ -202,6 +250,9 @@ export interface KeyValueProps {
   items?: Array<{ label: string; value?: string }>;
   path?: string;   // an object whose fields are the pairs
   title?: string;
+  "@catalogId"?: string;
+  "@accessibility"?: unknown;
+  "@metadata"?: { extensions?: unknown };
   [extra: string]: unknown;
 }
 
@@ -210,6 +261,9 @@ export interface ProseProps {
   id: string;
   component: "Prose";
   text: string;
+  "@catalogId"?: string;
+  "@accessibility"?: unknown;
+  "@metadata"?: { extensions?: unknown };
   [extra: string]: unknown;
 }
 
@@ -223,6 +277,9 @@ export interface TitleBarProps {
   status?: { from: string; labels?: { working?: string; idle?: string; input?: string; failed?: string } };
   actions?: Array<{ id: string; label: string; icon?: string; action: { name: string; context?: Record<string, unknown> } }>;
   menu?: string;   // the id of a Menu drawn as the bar's overflow
+  "@catalogId"?: string;
+  "@accessibility"?: unknown;
+  "@metadata"?: { extensions?: unknown };
   [extra: string]: unknown;
 }
 
@@ -232,6 +289,9 @@ export interface MenuProps {
   component: "Menu";
   trigger?: { kind?: "button" | "overflow" | "context"; label?: string };
   items: Array<{ id: string; label: string; shortcut?: string; group?: string; disabled?: boolean; checked?: string | { "@path": string }; action?: { name: string; context?: Record<string, unknown> }; items?: Array<{ id: string; label: string; shortcut?: string; group?: string; disabled?: boolean; checked?: string | { "@path": string }; action?: { name: string; context?: Record<string, unknown> } }> }> | string;   // the items, or a path to them in the data model
+  "@catalogId"?: string;
+  "@accessibility"?: unknown;
+  "@metadata"?: { extensions?: unknown };
   [extra: string]: unknown;
 }
 
@@ -243,6 +303,9 @@ export interface SplitProps {
   persist?: string;   // the key a browser keeps this split's sizes under; empty keeps none
   stackBelow?: number;   // below this width in pixels the panes stack; 0 never
   panes: Array<{ id: string; child?: string; size: number; min?: number; collapsible?: boolean; label?: string }>;
+  "@catalogId"?: string;
+  "@accessibility"?: unknown;
+  "@metadata"?: { extensions?: unknown };
   [extra: string]: unknown;
 }
 
@@ -254,6 +317,9 @@ export interface ChatInputProps {
   agent?: string;   // the agent that answers, named over the thread
   placeholder?: string;   // the hint in the empty message box
   suggestions?: Array<string>;   // questions offered as chips under the thread; a tap sends the question as a line
+  "@catalogId"?: string;
+  "@accessibility"?: unknown;
+  "@metadata"?: { extensions?: unknown };
   [extra: string]: unknown;
 }
 
@@ -267,6 +333,9 @@ export interface FileShareProps {
   label?: string;   // the words on the drop zone
   notice?: string;   // a line shown over the drop, such as who can read what is dropped
   attest?: string;   // a statement the person ticks before a drop; its words travel with each upload as the lawful basis
+  "@catalogId"?: string;
+  "@accessibility"?: unknown;
+  "@metadata"?: { extensions?: unknown };
   [extra: string]: unknown;
 }
 
@@ -274,6 +343,9 @@ export interface FileShareProps {
 export interface ApprovalCardProps {
   id: string;
   component: "ApprovalCard";
+  "@catalogId"?: string;
+  "@accessibility"?: unknown;
+  "@metadata"?: { extensions?: unknown };
   [extra: string]: unknown;
 }
 
@@ -282,6 +354,9 @@ export interface TimelineStripProps {
   id: string;
   component: "TimelineStrip";
   events?: Array<unknown>;   // the events shown when the data model has none
+  "@catalogId"?: string;
+  "@accessibility"?: unknown;
+  "@metadata"?: { extensions?: unknown };
   [extra: string]: unknown;
 }
 
@@ -302,6 +377,9 @@ export interface ChatProps {
   max?: number;   // the newest lines drawn
   preview?: string;   // the id of a FilePreview a citation chip opens its file in
   writeAction?: string;   // the action a sent line dispatches with {type: ChatMessage, entry}; a visitor's secret rides only with the page's write action
+  "@catalogId"?: string;
+  "@accessibility"?: unknown;
+  "@metadata"?: { extensions?: unknown };
   [extra: string]: unknown;
 }
 
@@ -321,6 +399,9 @@ export interface FileTreeProps {
   flat?: boolean;   // a flat list by name, as FileShare draws
   accept?: Array<string>;   // the media types and extensions an upload takes; empty takes every file
   maxBytes?: number;   // the largest upload, checked on the page; the feed's own cap decides
+  "@catalogId"?: string;
+  "@accessibility"?: unknown;
+  "@metadata"?: { extensions?: unknown };
   [extra: string]: unknown;
 }
 
@@ -333,23 +414,30 @@ export interface FilePreviewProps {
   maxBytes?: number;   // the largest file previewed, at most 16 MiB
   csvRows?: number;   // the rows of a CSV drawn
   kinds?: Array<"text/plain" | "text/markdown" | "text/csv" | "image/png" | "image/jpeg" | "application/pdf">;   // the media types drawn; every other draws as text when it is text, else offers Download
+  "@catalogId"?: string;
+  "@accessibility"?: unknown;
+  "@metadata"?: { extensions?: unknown };
   [extra: string]: unknown;
 }
 
-/** agentspaces-geo: A map of GeoFeature layers: points as icons or dots, lines as paths, polygons as filled shapes with an outline; points cluster below a zoom a layer sets; a click selects a feature with a ring (in a GeoLayout, its card opens as a window), a click on empty map or Escape clears it; pans and zooms with the wheel, a pinch, the + and - buttons and keys, and rotates with a modifier; keeps its view per app in the browser; a legend that hides a layer and says when a layer is capped, and a table view of the features. */
+/** agentspaces-geo: A map of GeoFeature layers: points as icons or dots, lines as paths, polygons as filled shapes with an outline; points cluster below a zoom a layer sets; a click selects a feature with a ring (in a GeoLayout, its card opens as a window), a click on empty map or Escape clears it; pans and zooms with the wheel, a pinch, the + and - buttons and keys, and rotates with a modifier; keeps its view per app in the browser; a legend that hides a layer and says when a layer is capped, and a table view of the features; with draw, a control to draw a circle or a polygon, name it, and hand it to the agent. A layer with pick reads the person's pick set: it draws only the picked features (or every feature, the picked ones in their pick hue with a halo and a label chip), the legend lists the picked keys with a remove button each and Clear, and a change of the set fits the view once. */
 export interface GeoMapProps {
   id: string;
   component: "GeoMap";
-  layers: Array<{ path: string; kind?: string; label?: string; style?: { color?: string; fill?: string; stroke?: string; opacity?: number; width?: number; size?: number; heading?: number; icon?: "dot" | "pin" | "truck" | "van" | "car" | "plane" | "ship" | "person" | "arrow" }; cluster?: { below?: number } }>;   // the feature layers, drawn in order (the first at the bottom)
+  layers: Array<{ path: string; kind?: string; label?: string; style?: { color?: string; fill?: string; stroke?: string; opacity?: number; width?: number; size?: number; heading?: number; icon?: "dot" | "pin" | "truck" | "van" | "car" | "plane" | "ship" | "person" | "arrow" }; cluster?: { below?: number }; pick?: { by: string; show: "picked" | "all"; fit?: boolean } }>;   // the feature layers, drawn in order (the first at the bottom)
   kinds?: string;   // a path to the app's FeatureKind entries: each kind's legend name, default style, and the fields its card shows first
   home?: { center?: Array<number>; zoom?: number };   // the view the map opens on and returns to with Home
   basemap?: string;   // a basemap the renderer knows by name (osm, osm-dark, plain, or one its host registers); empty for the look's default
   selectAction?: string;   // dispatched with the feature's id and kind when a person selects it
+  draw?: { action: string; shapes?: Array<"circle" | "polygon">; label?: string; maxVertices?: number };   // a control that lets a person draw an area on the map and name it, for the agent to keep. Circle: press at the centre and drag, or click a second point, to set the radius, shown in m or km while drawing. Polygon: click each corner; a double-click, Enter, or a click on the first corner closes it; Backspace removes the last corner; Escape cancels at any point. With the map focused, "draw at the map's centre" makes a circle at the current centre with a radius field, the way in by keyboard. Then an inline name field (required, 1 to 80 characters, plain text) with Save and Cancel. Save dispatches the action with {shape: circle or polygon, name, geometry: a GeoJSON Polygon whose ring is closed, center: [longitude, latitude] and radiusMeters for a circle}; a circle travels as a 64-vertex polygon; coordinates are rounded to 6 decimals. Everything drawn, the name too, renders as text, never as markup. While drawing, the shape shows as an overlay; after Save the overlay clears, and the feature the agent publishes is what stays.
   details?: boolean;   // in a GeoLayout, the map opens the selected feature's card as a window of its own
   timeSlider?: boolean;   // a slider over the features' times: the map shows the features of a window that ends where the person drags it
   legend?: boolean;
   table?: boolean;   // a table view of each layer's features, the dataviz rule
   transition?: number;   // milliseconds a point takes from its previous position to its newest
+  "@catalogId"?: string;
+  "@accessibility"?: unknown;
+  "@metadata"?: { extensions?: unknown };
   [extra: string]: unknown;
 }
 
@@ -360,6 +448,9 @@ export interface FeatureCardProps {
   map: string;   // the id of the GeoMap whose selection the card shows
   ask?: string;   // the id of the Chat whose box Ask fills (on this surface, or <surface>/<id>); empty for the chat the page last showed
   fields?: Array<string>;   // the properties shown first when the feature's kind names none
+  "@catalogId"?: string;
+  "@accessibility"?: unknown;
+  "@metadata"?: { extensions?: unknown };
   [extra: string]: unknown;
 }
 
@@ -370,10 +461,13 @@ export interface FeatureSearchProps {
   map: string;   // the id of the GeoMap whose features the box searches
   fields?: Array<string>;   // the properties searched beside the label and the id
   placeholder?: string;
+  "@catalogId"?: string;
+  "@accessibility"?: unknown;
+  "@metadata"?: { extensions?: unknown };
   [extra: string]: unknown;
 }
 
-/** agentspaces-geo: A list of the features at a path, newest first by when each was observed: the severity as a ring and a word, the label, the kind, the age, and a property line the design names. A new arrival slides in at the top with the look's highlight, or, when the person scrolled down, a pill says how many are new. A click on a row selects its feature, and the map flies to it and opens its card. It may watch an area (a box, or a polygon feature), listing the features inside it, drawing the area on the map, and marking a feature's arrival inside as an entry. It says when nothing has come yet, and when the feed stopped. */
+/** agentspaces-geo: A list of the features at a path, newest first by when each was observed: the severity as a ring and a word, the label in full (up to four lines, the whole of it in the row's title and accessible name), and a meta line with the kind, the property line the design names and the age. A new arrival slides in at the top with the look's highlight, or, when the person scrolled down, a pill says how many are new. A click on a row selects its feature, and the map flies to it and opens its card. It may watch an area (a box, or a polygon feature), listing the features inside it, drawing the area on the map, and marking a feature's arrival inside as an entry. A row the design marks done (done.field) is drawn calmer and keeps only the actions done.keep names. A row action with pick, in place of a dispatch, sets the map's pick set to the keys a feature property lists. It says when nothing has come yet (emptyText, else that it waits), and when the feed stopped. */
 export interface WatchboxProps {
   id: string;
   component: "Watchbox";
@@ -386,8 +480,13 @@ export interface WatchboxProps {
   area?: Array<number>;   // a box [west, south, east, north] the watchbox watches
   areaFeature?: string;   // the id of a polygon feature the watchbox watches, at its path or at areaPath
   areaPath?: string;   // where the area's polygon feature is, when it is not at the watchbox's path
-  actions?: Array<{ name: string; label: string }>;   // row actions, dispatched with the feature's id and kind
+  actions?: Array<{ name: string; label: string; pick?: { from: string } }>;   // row actions, dispatched with the feature's id and kind; an action with pick sets the pick set instead
   expectSeconds?: number;   // how often the feed is expected to change; past twice this the watchbox says the feed stopped
+  done?: { field: string; keep?: Array<string> };   // rows that are dealt with: a row whose feature property field is truthy is drawn calmer (muted, its severity ring outlined rather than filled), shows the property's value on its meta line, and keeps only the row actions named in keep (none when keep is absent)
+  emptyText?: string;   // what the watchbox says while it lists nothing, in place of "All quiet. Nothing yet. Waiting for <label>."
+  "@catalogId"?: string;
+  "@accessibility"?: unknown;
+  "@metadata"?: { extensions?: unknown };
   [extra: string]: unknown;
 }
 
@@ -397,6 +496,9 @@ export interface LayerMenuProps {
   component: "LayerMenu";
   map: string;   // the id of the GeoMap whose layers the menu lists
   label?: string;
+  "@catalogId"?: string;
+  "@accessibility"?: unknown;
+  "@metadata"?: { extensions?: unknown };
   [extra: string]: unknown;
 }
 

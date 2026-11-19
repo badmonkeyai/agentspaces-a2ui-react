@@ -15,6 +15,9 @@ const PATHS: Record<string, string> = {
   settings: 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM12 2v3M12 19v3M2 12h3M19 12h3',
   map: 'M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z',
   more: 'M5 12h.01M12 12h.01M19 12h.01',
+  bell: 'M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 20a2 2 0 0 0 4 0',
+  chart: 'M4 20V4M4 20h16M8 16v-5M12 16V8M16 16v-3',
+  window: 'M4 5h16v14H4zM4 9h16',
 };
 
 /** The icon names a design may use. */

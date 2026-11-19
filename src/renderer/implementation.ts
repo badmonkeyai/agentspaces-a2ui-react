@@ -150,6 +150,23 @@ export function useData<T = unknown>(ctx: Ctx, path: string | undefined): T | un
   return value;
 }
 
+/**
+ * Whether the surface's data has arrived: its data model holds a value of its own (a key that does not start with _, the
+ * renderer's own state such as /_geo). A feed writes every binding of a page in its first write, so once the data has
+ * arrived a path that holds nothing has no binding, or none that answered: a list there shows its empty words, not a
+ * busy one that never ends.
+ */
+export function useArrived(ctx: Ctx): boolean {
+  const read = () => { const root = ctx.get<Record<string, unknown>>('/'); return Boolean(root && typeof root === 'object' && Object.keys(root).some(k => !k.startsWith('_'))); };
+  const [arrived, setArrived] = useState<boolean>(read);
+  useEffect(() => {
+    if (arrived) return undefined;
+    if (read()) { setArrived(true); return undefined; }
+    return ctx.subscribe('/', () => { if (read()) setArrived(true); });
+  }, [ctx, arrived]); // eslint-disable-line react-hooks/exhaustive-deps
+  return arrived;
+}
+
 /** The rows at a pointer as an array (an object's values when it is a map, nothing when it is absent). */
 export function useRows<T = Record<string, unknown>>(ctx: Ctx, path: string | undefined): T[] {
   const v = useData<unknown>(ctx, path);

@@ -4,7 +4,7 @@
 // drawn and entered; row actions; the empty and stopped feeds.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mount, click, React, ui } from './setup.mjs';
+import { mount, click, draw, React, ui } from './setup.mjs';
 
 const now = Date.now();
 const iso = ms => new Date(now - ms).toISOString();
@@ -231,4 +231,21 @@ test('an empty watchbox says the design\'s own words when it gives them', async 
   await p.push('/areas', [pt('z1', 'area.zone', 0, 0, { label: 'Zone 1' })]);
   assert.deepEqual(rowIds(p.container), ['z1'], 'and lists what comes');
   await p.unmount();
+});
+
+test('sort keeps a property\'s order in place of newest first: numbers by value, a feature without it last, ties newest first (GEO-W-07)', () => {
+  const f = (id, score, at) => ui.featureOf({ type: 'Feature', id, kind: 'place', label: id, geometry: { type: 'Point', coordinates: [0, 0] }, properties: score === undefined ? {} : { score }, at });
+  const rows = [f('a', 3, '2026-11-19T10:00:00Z'), f('b', 9, '2026-11-19T09:00:00Z'), f('c', undefined, '2026-11-19T11:00:00Z'), f('d', 9, '2026-11-19T10:30:00Z'), f('e', 'x', '2026-11-19T08:00:00Z')];
+  const desc = ui.watchRows(rows.filter(x => x.id !== 'e'), 10, '-score').map(x => x.id);
+  assert.deepEqual(desc, ['d', 'b', 'a', 'c'], 'highest first, the tie newest first, the one without a score last');
+  assert.deepEqual(ui.watchRows(rows.filter(x => x.id !== 'e'), 10, 'score').map(x => x.id), ['a', 'd', 'b', 'c'], 'ascending, still last without it');
+  assert.deepEqual(ui.watchRows(rows.filter(x => x.id !== 'e'), 10).map(x => x.id), ['c', 'd', 'a', 'b'], 'no sort: newest first');
+  assert.deepEqual(ui.watchRows([f('p', 'beta', ''), f('q', 'alpha', '')], 10, 'score').map(x => x.id), ['q', 'p'], 'text as text');
+});
+
+test('the sorted golden lists the highest score first', async () => {
+  const g = ui.GOLDENS.find(x => x.name === 'Watchbox' && x.state === 'sorted');
+  const { container, unmount } = await draw(g.envelopes);
+  assert.deepEqual([...container.querySelectorAll('.as-watchbox-row')].map(r => r.dataset.feature), ['pl2', 'pl3', 'pl1']);
+  await unmount();
 });

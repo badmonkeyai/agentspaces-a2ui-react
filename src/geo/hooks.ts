@@ -8,7 +8,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useArrived, useData, useRows, type Ctx } from '../renderer/implementation';
 import { useLook } from '../look/provider';
-import { featureLayers, geoState, type FeatureKindRow, type FeatureLayer, type FeatureLayerSpec } from '../viz/features';
+import { featureLayers, geoState, labelsSpecOf, type FeatureKindRow, type FeatureLayer, type FeatureLayerSpec } from '../viz/features';
+import { rowFilterOf } from '../viz/filter';
+import { lookRamp } from '../viz/ramp';
 
 /** The values at several pointers, re-rendered when any changes (one subscription per path, in order). */
 export function usePaths(ctx: Ctx, paths: readonly string[]): unknown[] {
@@ -31,13 +33,18 @@ export function specsOf(layers: unknown): FeatureLayerSpec[] {
 export function useFeatureLayers(ctx: Ctx, mapId: string, mapProps: Record<string, unknown> | undefined): { layers: FeatureLayer[]; kinds: FeatureKindRow[]; state: ReturnType<typeof geoState> } {
   const { tokens } = useLook();
   const specs = useMemo(() => specsOf(mapProps?.layers), [mapProps?.layers]);
-  const paths = useMemo(() => specs.flatMap(s => [s.path, s.path + 'Total']), [specs]);
+  // each layer's path and its total, then the paths its filter reads (GEO-M-12), so a change there filters at once
+  const filterPaths = useMemo(() => [...new Set(specs.flatMap(s => [rowFilterOf(s.filter)?.path, labelsSpecOf(s.labels)?.filter?.path]).filter((p): p is string => Boolean(p)))], [specs]);
+  const paths = useMemo(() => [...specs.flatMap(s => [s.path, s.path + 'Total']), ...filterPaths], [specs, filterPaths]);
   const values = usePaths(ctx, paths);
   const kinds = useRows<FeatureKindRow>(ctx, typeof mapProps?.kinds === 'string' && mapProps.kinds.startsWith('/') ? mapProps.kinds : undefined);
   // once the page's data has arrived, a layer whose path it lacks is empty, not loading for ever
   const arrived = useArrived(ctx);
-  const layers = useMemo(() => featureLayers(specs, p => { const v = values[paths.indexOf(p)]; return v === undefined && arrived && !p.endsWith('Total') ? [] : v; }, tokens.color.categorical),
-    [specs, values, paths, tokens.color.categorical, arrived]);
+  const ramp = useMemo(() => lookRamp(tokens.color), [tokens.color.surface, tokens.color.sequential, tokens.color.accent]); // eslint-disable-line react-hooks/exhaustive-deps
+  const layers = useMemo(() => featureLayers(specs, p => {
+    const v = values[paths.indexOf(p)];
+    return v === undefined && arrived && !p.endsWith('Total') && !filterPaths.includes(p) ? [] : v;
+  }, tokens.color.categorical, ramp), [specs, values, paths, filterPaths, tokens.color.categorical, ramp, arrived]);
   return { layers, kinds, state: geoState(mapId) };
 }
 

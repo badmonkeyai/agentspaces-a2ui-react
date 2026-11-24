@@ -43,7 +43,7 @@ export function FeatureSearchView({ props, ctx }: ComponentProps<FeatureSearchPr
     : whole.state === 'loading' ? 'Loading the features…' : whole.state === 'error' ? 'Unavailable' : 'No feature yet';
   const pick = (h: SearchHit | undefined) => {
     if (!h) return;
-    select(ctx, state.selected, h.feature.id, typeof mapProps?.selectAction === 'string' ? mapProps.selectAction : undefined, h.feature.kind);
+    select(ctx, state.selected, h.feature.id, typeof mapProps?.selectAction === 'string' ? mapProps.selectAction : undefined, h.feature.kind, h.feature);
     ctx.set(state.focus, { id: h.feature.id, seq: Date.now() });
     setText(''); setQuery('');
   };
@@ -65,7 +65,7 @@ export function FeatureSearchView({ props, ctx }: ComponentProps<FeatureSearchPr
       <label className="as-visually-hidden" htmlFor={listId + 'q'}>{placeholder}</label>
       <input id={listId + 'q'} type="search" value={text} placeholder={shownPlaceholder} autoComplete="off" role="combobox" aria-expanded={open} aria-controls={listId} aria-autocomplete="list"
         aria-describedby={whole.text ? listId + 'state' : undefined} aria-busy={whole.state === 'loading' || undefined}
-        aria-activedescendant={open && hits[active] ? `${listId}-${active}` : undefined} onChange={e => { setText(e.target.value); setActive(0); }} onKeyDown={onKey} />
+        aria-activedescendant={open && hits[active] ? `${listId}-${active}` : undefined} onChange={e => { setText(e.target.value); setActive(0); }} onKeyDown={onKey} ref={ctx.accessibilityRef} />
       {whole.text ? <span id={listId + 'state'} className="as-visually-hidden">{whole.text}</span> : null}
       {open ? (
         <ul id={listId} role="listbox" className="results">

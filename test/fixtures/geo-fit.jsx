@@ -2,7 +2,8 @@
 // Surfaces, so the surfaces' own wrappers are around it), two tall windows on the left, two on the right, one at the
 // foot holding a wide table under a checkbox, and a free one kept at a place off a smaller screen. ?details=1 selects a
 // feature, so the map opens its details window too. The map has a time slider and a draw control at its top; the free
-// window is a watchbox over the map's pins, whose row flies the map to its pin.
+// window is a watchbox over the map's pins, whose row flies the map to its pin. ?stats=1 gives the map a legend toggle
+// (srad/agentspaces-geo.md GEO-M-14) whose layer chips start hidden.
 import { createElement as h } from 'react';
 import { createRoot } from 'react-dom/client';
 import * as ui from '../../dist/index.js';
@@ -15,7 +16,8 @@ const envelopes = [
   { version: '1.0', createSurface: { surfaceId: 'map', catalogId: 'agentspaces-geo' } },
   { version: '1.0', updateComponents: { surfaceId: 'map', components: [{ id: 'root', component: 'Column', children: ['find', 'watch'] },
     { id: 'find', component: 'FeatureSearch', map: 'watch' },
-    { id: 'watch', component: 'GeoMap', basemap: 'plain', timeSlider: true, draw: { action: 'fence', label: 'Draw an area' }, layers: [{ path: '/pins', label: 'Pins' }, { path: '/more', label: 'More pins' }] }] } },
+    { id: 'watch', component: 'GeoMap', basemap: 'plain', timeSlider: true, draw: { action: 'fence', label: 'Draw an area' }, layers: [{ path: '/pins', label: 'Pins' }, { path: '/more', label: 'More pins' }],
+      ...(params.get('stats') ? { legendToggle: { label: 'Stats', hidden: true } } : {}) }] } },
   { version: '1.0', updateDataModel: { surfaceId: 'map', path: '/', value: { pins, more,
     ...(params.get('details') ? { _geo: { watch: { selected: 'p1' } } } : {}) } } },
 ];

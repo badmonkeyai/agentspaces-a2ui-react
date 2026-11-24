@@ -15,7 +15,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { agentFunctions } from './implementation';
 import { A2uiSurface, MarkdownComponentContext, type ReactCatalogComponent } from '@a2ui/react';
 import { MessageProcessor, basicCatalog, type SurfaceModel, type ComponentApi } from '@a2ui/web_core/v1_0';
-import { catalogs, declares } from './catalogs';
+import { catalogFromDocument, catalogs, declares } from './catalogs';
 import { loadGeo } from '../components/geo/load';
 import { SUPERSEDED } from './envelopes';
 import { Markdown } from '../viz/Markdown';
@@ -63,9 +63,34 @@ export interface SurfacesProps {
   mode?: 'light' | 'dark';
   /** Drawn when no surface exists yet. */
   empty?: ReactNode;
+  /**
+   * The catalogs the app may draw with (its AppCard's): a surface on any other catalog is refused here, as the feed
+   * refuses it, and named in a problem. The basic catalog is always allowed. Absent: any catalog this renderer holds.
+   */
+  allowedCatalogs?: readonly string[];
+  /**
+   * Loads the document of a catalog a surface names that this renderer does not hold (a feed's /catalogs route): its
+   * schemas and function declarations join the renderer, so the surface's components are checked and the catalog's
+   * functions are routed. A document brings no code: a component this renderer does not implement is still left out.
+   * The surface's messages wait for it; a catalog that does not load is a problem and its surface is not drawn.
+   */
+  loadCatalog?: (catalogId: string) => Promise<Record<string, unknown> | undefined>;
 }
 
-export function Surfaces({ envelopes, onAction, onProblem, onFunctionCall, onFunctionResult, functionTimeoutMs, look, mode = 'light', empty }: SurfacesProps) {
+/** The surface a message is about. */
+function surfaceOf(e: Envelope): string {
+  for (const v of Object.values(e)) if (v && typeof v === 'object' && typeof (v as { surfaceId?: unknown }).surfaceId === 'string') return (v as { surfaceId: string }).surfaceId;
+  return '';
+}
+
+export function Surfaces({ envelopes, onAction, onProblem, onFunctionCall, onFunctionResult, functionTimeoutMs, look, mode = 'light', empty, allowedCatalogs, loadCatalog }: SurfacesProps) {
+  const allowedRef = useRef(allowedCatalogs);
+  allowedRef.current = allowedCatalogs;
+  const loadRef = useRef(loadCatalog);
+  loadRef.current = loadCatalog;
+  // a surface whose catalog is loading holds its messages; a surface on a refused catalog drops them
+  const waiting = useRef(new Map<string, Envelope[]>());
+  const refusedSurfaces = useRef(new Set<string>());
   const onActionRef = useRef(onAction);
   onActionRef.current = onAction;
   const onProblemRef = useRef(onProblem);
@@ -167,11 +192,44 @@ export function Surfaces({ envelopes, onAction, onProblem, onFunctionCall, onFun
     const fresh = envelopes.slice(seen.current);
     seen.current = envelopes.length;
     if (fresh.length) {
+      const run = (e: Envelope) => { try { processor.processMessages(admit(e) as never); } catch (err) { onProblemRef.current?.(String((err as Error).message ?? err)); } };
       for (const e of fresh) {
         if (e === SUPERSEDED) continue;   // a data write a later one replaced (appendEnvelope)
+        const sid = surfaceOf(e);
+        const create = (e as { createSurface?: { catalogId?: string } }).createSurface;
+        if (create) refusedSurfaces.current.delete(sid);
+        const catalogId = create?.catalogId ?? '';
+        // the app's catalogs (its AppCard's), as the feed holds them
+        const allowed = allowedRef.current;
+        if (create && allowed && catalogId && catalogId !== basicCatalog.id && !allowed.includes(catalogId)) {
+          refusedSurfaces.current.add(sid);
+          onProblemRef.current?.(`surface ${sid} is on the catalog ${catalogId}, which this app does not name (${allowed.join(', ') || 'none'}); it is not drawn`);
+          continue;
+        }
+        if (refusedSurfaces.current.has(sid)) continue;
+        const held = waiting.current.get(sid);
+        if (held && !create) { held.push(e); continue; }
         // a surface on the geo catalog: start loading its drawings now, so the map is ready when it first draws
-        if ((e as { createSurface?: { catalogId?: string } }).createSurface?.catalogId === 'agentspaces-geo') void loadGeo();
-        try { processor.processMessages(admit(e) as never); } catch (err) { onProblemRef.current?.(String((err as Error).message ?? err)); }
+        if (catalogId === 'agentspaces-geo') void loadGeo();
+        const load = loadRef.current;
+        if (create && catalogId && load && !processor.catalogs.some(c => c.id === catalogId)) {
+          const queue: Envelope[] = [e];
+          waiting.current.set(sid, queue);
+          load(catalogId).then(doc => {
+            if (!doc) throw new Error('no document');
+            if (!processor.catalogs.some(c => c.id === catalogId)) processor.addCatalog(catalogFromDocument(doc, catalogId) as never);
+          }).then(() => {
+            waiting.current.delete(sid);
+            for (const m of queue) run(m);
+            setSurfaces([...processor.getSurfaces().values()]);
+          }, (err: unknown) => {
+            waiting.current.delete(sid);
+            refusedSurfaces.current.add(sid);
+            onProblemRef.current?.(`the catalog ${catalogId} of surface ${sid} did not load (${String((err as Error)?.message ?? err)}); it is not drawn`);
+          });
+          continue;
+        }
+        run(e);
       }
       setSurfaces([...processor.getSurfaces().values()]);
     }

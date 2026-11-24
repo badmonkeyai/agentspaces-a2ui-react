@@ -19,6 +19,9 @@ function visibleText(el) {
 
 for (const name of NEW) {
   for (const g of ui.GOLDENS.filter(x => x.name === name)) {
+    // a variant's own states end in -empty, -loading or -error (a heatmap's, a hex layer's, a sorted watchbox's); any other
+    // variant (picked, lit, a heatmap) is a full one
+    const state = /-(empty|loading|error)$/.exec(g.state ?? '')?.[1] ?? (['empty', 'loading', 'error'].includes(g.state) ? g.state : 'full');
     test(`${ui.goldenTitle(g)} draws its state`, async () => {
       const { container, problems, unmount } = await draw(g.envelopes);
       assert.deepEqual(problems, []);
@@ -26,15 +29,15 @@ for (const name of NEW) {
       assert.ok(own, `${name} is drawn`);
       const busy = own.matches('[aria-busy="true"]') || Boolean(own.querySelector('[aria-busy="true"]'));
       const text = own.textContent ?? '';
-      if (g.state === 'loading') assert.ok(busy, `${name} (loading) is busy for a screen reader`);
+      if (state === 'loading') assert.ok(busy, `${name} (loading) is busy for a screen reader`);
       else assert.ok(!busy, `${name} (${g.state}) is not busy`);
-      if (g.state === 'error') assert.ok(text.includes('Unavailable'), `${name} (error) says it: ${text.slice(0, 200)}`);
+      if (state === 'error') assert.ok(text.includes('Unavailable'), `${name} (error) says it: ${text.slice(0, 200)}`);
       else assert.ok(!text.includes('Unavailable'), `${name} (${g.state}) says nothing is unavailable`);
       // and says it where a person sees it, not only to a screen reader
       const seen = visibleText(own);
-      if (g.state === 'error') assert.match(seen, /unavailable/i, `${name} (error) shows it: ${seen.slice(0, 200)}`);
+      if (state === 'error') assert.match(seen, /unavailable/i, `${name} (error) shows it: ${seen.slice(0, 200)}`);
       else assert.doesNotMatch(seen, /unavailable/i, `${name} (${g.state}) shows nothing unavailable`);
-      if (g.state === 'loading') assert.match(seen, /loading/i, `${name} (loading) shows it: ${seen.slice(0, 200)}`);
+      if (state === 'loading') assert.match(seen, /loading/i, `${name} (loading) shows it: ${seen.slice(0, 200)}`);
       else assert.doesNotMatch(seen, /loading/i, `${name} (${g.state}) shows nothing loading`);
       await unmount();
     });

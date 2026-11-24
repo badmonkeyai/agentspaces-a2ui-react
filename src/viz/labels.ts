@@ -39,22 +39,51 @@ export function labelBox(l: PlacedLabel, size = LABEL_SIZE): { left: number; top
   return { left: l.x - w / 2, top: l.y + l.dy, right: l.x + w / 2, bottom: l.y + l.dy + h };
 }
 
+/** How far in from each side of the map the windows and the map's own controls reach (px), which no label is drawn under. */
+export interface LabelInsets { top?: number; right?: number; bottom?: number; left?: number }
+
+/** The part of a width by height map that the insets leave visible; the whole map when they would leave nothing. */
+export function visibleArea(width: number, height: number, insets?: LabelInsets): { left: number; top: number; right: number; bottom: number } {
+  const left = Math.max(0, insets?.left ?? 0), right = width - Math.max(0, insets?.right ?? 0);
+  const top = Math.max(0, insets?.top ?? 0), bottom = height - Math.max(0, insets?.bottom ?? 0);
+  return right - left >= 40 && bottom - top >= 20 ? { left, top, right, bottom } : { left: 0, top: 0, right: width, bottom: height };
+}
+
 /**
- * Places labels in the order given (rankLabels first): one that overlaps a placed one, or lies wholly outside the
- * width by height screen, is left out; the ones marked always are placed whatever they overlap. Returns the placed keys.
+ * Lays labels out in the order given (rankLabels first), inside the part of the width by height map the insets leave
+ * visible (kismet-life-patterns §10.13: labels ran under the docked windows and off the map's edges): a label not wholly
+ * inside it, or that overlaps a placed one, is left out; the ones marked always are placed whatever they overlap, and one
+ * whose point lies in the visible part is moved into it where its chip would cross an edge (`shift`, px). An always one
+ * wholly off the screen is not drawn. Returns the placed keys and the shifts.
  */
-export function placeLabels(ranked: readonly PlacedLabel[], width: number, height: number, max = LABEL_MAX, gap = 2): Set<string> {
+export function layoutLabels(ranked: readonly PlacedLabel[], width: number, height: number, max = LABEL_MAX, gap = 2, insets?: LabelInsets): { shown: Set<string>; shift: Map<string, [number, number]> } {
   const placed: Array<ReturnType<typeof labelBox>> = [];
-  const keys = new Set<string>();
+  const shown = new Set<string>();
+  const shift = new Map<string, [number, number]>();
+  const area = visibleArea(width, height, insets);
   let counted = 0;
   for (const l of ranked) {
     if (!l.always && counted >= max) break;
-    const b = labelBox(l);
+    let b = labelBox(l);
     if (b.right < 0 || b.bottom < 0 || b.left > width || b.top > height) continue;
-    if (!l.always && placed.some(p => b.left < p.right + gap && b.right + gap > p.left && b.top < p.bottom + gap && b.bottom + gap > p.top)) continue;
+    if (l.always) {
+      const inside = l.x >= area.left && l.x <= area.right && l.y >= area.top && l.y <= area.bottom;
+      const dx = !inside ? 0 : b.left < area.left ? area.left - b.left : b.right > area.right ? Math.max(area.left - b.left, area.right - b.right) : 0;
+      // past the foot the chip goes above its point instead of below it
+      const dy = !inside || b.bottom <= area.bottom ? 0 : -(b.bottom - b.top) - 2 * l.dy;
+      if (dx || dy) { shift.set(l.key, [dx, dy]); b = { left: b.left + dx, right: b.right + dx, top: b.top + dy, bottom: b.bottom + dy }; }
+    } else {
+      if (b.left < area.left || b.right > area.right || b.top < area.top || b.bottom > area.bottom) continue;
+      if (placed.some(p => b.left < p.right + gap && b.right + gap > p.left && b.top < p.bottom + gap && b.bottom + gap > p.top)) continue;
+    }
     placed.push(b);
-    keys.add(l.key);
+    shown.add(l.key);
     if (!l.always) counted++;
   }
-  return keys;
+  return { shown, shift };
+}
+
+/** The keys layoutLabels places (with no insets: the whole map is visible). */
+export function placeLabels(ranked: readonly PlacedLabel[], width: number, height: number, max = LABEL_MAX, gap = 2, insets?: LabelInsets): Set<string> {
+  return layoutLabels(ranked, width, height, max, gap, insets).shown;
 }

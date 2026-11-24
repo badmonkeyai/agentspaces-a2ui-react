@@ -87,11 +87,14 @@
 .bma-table .as-pick-box { margin: 0; vertical-align: -2px; accent-color: var(--bma-color-accent); }
 .bma-table .as-pick-swatch { display: inline-block; width: 10px; height: 10px; margin-left: 6px; border-radius: 50%; vertical-align: -1px; box-shadow: 0 0 0 1px var(--bma-color-surface), 0 0 0 2px var(--bma-color-line); }
 .bma-table tr[data-picked] td { background: color-mix(in srgb, var(--bma-color-ink) 4%, var(--bma-color-surface)); }
-.bma-table td.as-row-actions { white-space: nowrap; }
+.bma-table td.as-row-actions { white-space: normal; min-width: 8em; }
+/* kismet-life-patterns §10.13: the row buttons wrap within their cell (each button's words stay on one line), and a
+   column of long text keeps a reading width, so a note is not squeezed to a word a line */
+.bma-table td.as-row-actions .bma-btn { white-space: nowrap; margin: 2px 4px 2px 0; }
+.bma-table td.as-long { min-width: 18em; }
 /* select.focus (GEO-D-06): the first column's words are a button that reads in the cell's ink, underlined in the accent,
    so it keeps its contrast on a picked row's tint */
 .bma-table td .as-geo-link { color: inherit; font-weight: inherit; text-decoration: underline; text-decoration-color: var(--bma-color-accent); text-underline-offset: 3px; }
-.bma-table td.as-row-actions .bma-btn + .bma-btn { margin-left: 4px; }
 /* a toolbar action's confirm: a modal over the whole page, the look's panel and its overlay shadow */
 .as-confirm-backdrop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 16px; background: rgb(0 0 0 / 0.45); }
 .as-confirm { width: min(440px, 100%); box-sizing: border-box; padding: 18px 20px 16px; background: var(--bma-color-surface); color: var(--bma-color-ink); border: 1px solid var(--bma-color-line);
@@ -475,6 +478,12 @@
 .as-geomap .legend .entry .swatch { width: 7px; height: 7px; margin-right: 0; }
 .as-geomap .legend .bar { display: inline-flex; gap: 4px; }
 .as-geomap .legend .bma-btn { min-height: 26px; padding: 0 9px; font-size: inherit; background: color-mix(in srgb, var(--bma-color-bar) 86%, transparent); box-shadow: var(--bma-shadow-raise, 0 2px 8px rgb(0 0 0 / 0.18)); }
+/* the legend toggle (srad/agentspaces-geo.md GEO-M-14): the layer entries are one group that shows or hides as a whole,
+   its entries still the legend's own row items; the toggle is the legend's first item outside a GeoLayout */
+.as-geomap .legend .as-legend-entries { display: contents; }
+.as-geomap .legend .as-legend-entries[hidden] { display: none; }
+.as-geomap .legend .as-legend-toggle[aria-pressed="true"] { border-color: color-mix(in srgb, var(--bma-color-accent) 60%, transparent); }
+.as-legend-toggle .as-legend-off { color: var(--bma-color-ink-muted); font-variant-numeric: tabular-nums; }
 /* no map to draw over (loading, or the table fallback): the legend is a plain row at the top again */
 .as-geomap:not([data-state="map"]) .legend { position: relative; left: auto; bottom: auto; max-width: none; flex-wrap: wrap; padding: var(--bma-space-s); border-bottom: 1px solid var(--bma-color-line); background: var(--bma-color-surface); }
 .as-geomap:not([data-state="map"]) .legend .entry, .as-geomap:not([data-state="map"]) .legend .bma-btn { box-shadow: none; }
@@ -585,6 +594,10 @@
 .as-geo-menu-item:hover { color: var(--bma-color-ink); border-color: var(--bma-color-line-strong, color-mix(in srgb, var(--bma-color-ink) 30%, transparent)); }
 .as-geo-menu-item.open { color: color-mix(in srgb, var(--bma-color-accent) 72%, var(--bma-color-ink)); border-color: color-mix(in srgb, var(--bma-color-accent) 60%, transparent); background: var(--bma-color-accent-soft, color-mix(in srgb, var(--bma-color-accent) 12%, transparent)); }
 .as-geo-menu-item:focus-visible { outline: 2px solid var(--bma-color-accent); outline-offset: 2px; }
+/* the end of the menu, where a map's legend toggle draws (GEO-M-14): its item is the menu's own; a menu with no item at
+   all (no window, no toggle) takes no row */
+.as-geo-menu-slot { display: contents; }
+.as-geo-menu:not(:has(.as-geo-menu-item)) { display: none; }
 .as-geo-tools { display: flex; align-items: center; gap: var(--bma-space-s); font-size: var(--bma-font-xs); }
 .as-geo-tools { margin-left: auto; }
 .as-geo-stage { position: relative; flex: 1 1 auto; min-height: 0; overflow: clip; }
@@ -732,3 +745,53 @@
   .bma-look *, .as-conversation *, .as-geo-layout * { transition: none !important; }
   .bma-btn:active:not(:disabled) { transform: none; }
 }
+
+/* srad/agentspaces-geo.md GEO-D-08: Visualize mark heatmap. Cells on the look's sequential ramp with a 2 px surface gap
+   (the dataviz spacer), a cell no row has as an outline, the selected cell ringed in the accent, the focused one outlined,
+   small multiples side by side, the ramp's legend with its range and the outline's meaning. */
+.as-heatmap .as-heat-facets { display: flex; flex-wrap: wrap; gap: var(--bma-space-m) calc(var(--bma-space-m) * 1.5); }
+.as-heatmap .as-heat-facet { flex: 1 1 320px; min-width: 0; }
+.as-heatmap .as-heat-facet-title { margin: 0 0 4px; font-size: var(--bma-font-xs); font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.as-heatmap .as-heat-facet-title .swatch { width: 10px; height: 10px; border-radius: 50%; box-shadow: 0 0 0 1px var(--bma-color-surface), 0 0 0 2px var(--bma-color-line); }
+.as-heat-grid { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 2px; font-size: 10px; color: var(--bma-color-ink-muted); }
+.as-heat-grid th { font-weight: 400; padding: 0 2px; text-align: center; white-space: nowrap; overflow: hidden; }
+.as-heat-grid th[scope="row"] { text-align: right; width: 3.2em; padding-right: 4px; }
+.as-heat-grid td.corner { width: 3.2em; }
+.as-heat-grid td.cell { height: 18px; padding: 0; border-radius: 3px; cursor: pointer; outline: none; }
+.as-heat-grid td.cell.empty { cursor: default; background: transparent; box-shadow: inset 0 0 0 1px var(--bma-color-line); }
+.as-heat-grid td.cell:focus-visible { box-shadow: 0 0 0 2px var(--bma-color-ink); }
+.as-heat-grid td.cell.selected { box-shadow: 0 0 0 2px var(--bma-color-surface), 0 0 0 4px var(--bma-color-accent); }
+.as-heat-grid td.cell.selected:focus-visible { box-shadow: 0 0 0 2px var(--bma-color-ink), 0 0 0 4px var(--bma-color-accent); }
+.as-heat-legend { align-items: center; margin-top: 6px; }
+.as-heat-ramp { display: inline-flex; gap: 2px; vertical-align: middle; margin-right: 4px; }
+.as-heat-ramp .step { display: inline-block; width: 14px; height: 10px; border-radius: 2px; }
+.bma-legend .swatch.as-heat-none { background: transparent; box-shadow: inset 0 0 0 1px var(--bma-color-line); }
+.as-heatmap .as-heat-below { display: grid; gap: var(--bma-space-s); margin-top: var(--bma-space-s); }
+
+/* GEO-M-11: a hex layer's legend chip shows its ramp in place of a hue */
+.as-geomap .legend .swatch.as-ramp-swatch, .bma-map .swatch.as-ramp-swatch { width: 26px; border-radius: 2px; }
+
+/* GEO-D-11: a DataTable state column, the A2A word beside its icon in its tone, never colour alone */
+.as-task-state { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.as-task-state .icon { display: inline-grid; place-items: center; width: 1.2em; font-weight: 700; color: var(--as-tone, var(--bma-color-ink-muted)); }
+.as-task-state.as-tone-good { --as-tone: var(--bma-color-good); }
+.as-task-state.as-tone-warning { --as-tone: var(--bma-color-warning); }
+.as-task-state.as-tone-critical { --as-tone: var(--bma-color-critical); }
+.as-task-state.as-tone-info { --as-tone: var(--bma-color-accent); }
+.as-task-state.as-tone-muted { --as-tone: var(--bma-color-ink-muted); }
+
+/* a component's declared skeleton (A2UI 1.0 @metadata extension "skeleton"): where it will be, until the data arrives.
+   Bars in the card's tint, a slow sheen that stops for a person who asks for less motion. */
+.as-skeleton { display: grid; gap: 8px; padding: 8px 0; }
+.as-skeleton .bar { display: block; height: 12px; border-radius: 4px; background: var(--bma-color-card, rgba(0, 0, 0, 0.06)); background-image: linear-gradient(90deg, transparent, var(--bma-color-grid, rgba(0, 0, 0, 0.05)), transparent); background-size: 200% 100%; animation: as-sheen 1.6s ease-in-out infinite; }
+.as-skeleton-text .bar:last-child { width: 60%; }
+.as-skeleton-rows .bar { height: 18px; }
+.as-skeleton-card .bar { height: 96px; border-radius: var(--bma-radius-l, 8px); }
+.as-skeleton-chart .bar { height: 160px; }
+.as-skeleton-block .bar { height: 48px; }
+@keyframes as-sheen { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+@media (prefers-reduced-motion: reduce) { .as-skeleton .bar { animation: none; } }
+/* one surface in several looks (SurfacesInLooks): side by side where they fit, each named */
+.as-looks { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin: 0; }
+.as-looks-one { margin: 0; }
+.as-looks-one > figcaption { font-size: 12px; margin: 0 0 6px; opacity: .75; }

@@ -7,7 +7,7 @@
 // child), registered with @a2ui/react as a binderless implementation so the surface, the data model, the validation,
 // and the action channel are web_core's and the drawing is ours. Nothing a component receives is ever placed in the
 // DOM as markup: React escapes every string, so nothing an agent writes executes.
-import { createElement, useEffect, useState, type FC, type ReactNode } from 'react';
+import { Fragment, createElement, useEffect, useState, type FC, type ReactNode } from 'react';
 import { createBinderlessComponentImplementation, type ReactComponentImplementation } from '@a2ui/react';
 import { ChildListSchema, ComponentIdSchema, DataModel, type ComponentContext } from '@a2ui/web_core/v1_0';
 import { z } from 'zod';
@@ -49,6 +49,14 @@ export interface Ctx {
   child(id: string | undefined): ReactNode;
   /** Whether the surface holds a component of that id (a design that names a missing child says so). */
   has(id: string | undefined): boolean;
+  /**
+   * @a2ui/react 0.16: give it to the element a person operates (an input), and the component's `@accessibility` label and
+   * description name that element, with `aria-invalid` while a check fails. Without it, the host element is labelled as a
+   * group around the component.
+   */
+  accessibilityRef?: (element: Element | null) => void;
+  /** @a2ui/react 0.16: give it to the element that shows validation errors; the {@link accessibilityRef} element is described by it. */
+  validationErrorsRef?: (element: Element | null) => void;
 }
 
 /** What a drop hands the uploader beside the file: the lawful basis to send as X-Attest, progress from 0 to 1, and its path in the tree. */
@@ -69,7 +77,61 @@ export const fileSources = new Map<string, FileSource>();
 /** How a surface calls its agent's functions, keyed by surface id: set by Surfaces while the surface is drawn. */
 export const agentFunctions = new Map<string, (fn: string, args?: Record<string, unknown>) => Promise<unknown>>();
 
-function ctxOf(context: ComponentContext, buildChild: (id: string, basePath?: string) => ReactNode): Ctx {
+/**
+ * The page's own state (srad/agentspaces-geo.md GEO-D-12): a data model path under {@link PAGE_PATH} is the page's, not
+ * the surface's, so every surface the page draws reads and writes the same value there: a heatmap's selected in one
+ * window filters a GeoMap layer and a DataTable drawn by others (the windows of a GeoLayout are surfaces of their own). It
+ * lives in the browser's memory only, as the pick set does: never a space, storage, the URL or an action, and a reload
+ * empties it.
+ */
+export const PAGE_PATH = '/_page/';
+let pageRoot: Record<string, unknown> = {};
+const pageListeners = new Map<string, Set<(v: unknown) => void>>();
+const pageParts = (path: string) => path.split('/').filter(Boolean).map(p => p.replace(/~1/g, '/').replace(/~0/g, '~'));
+/** The page's value at a pointer under {@link PAGE_PATH}. */
+export function pageGet<T = unknown>(path: string): T | undefined {
+  let v: unknown = pageRoot;
+  for (const k of pageParts(path)) {
+    if (v === null || typeof v !== 'object') return undefined;
+    v = (v as Record<string, unknown>)[k];
+  }
+  return v as T | undefined;
+}
+/** Writes the page's value at a pointer under {@link PAGE_PATH}, and tells every surface that reads it, or a part of it. */
+export function pageSet(path: string, value: unknown): void {
+  const parts = pageParts(path);
+  if (!parts.length) return;
+  const next: Record<string, unknown> = { ...pageRoot };
+  let at = next;
+  for (let i = 0; i < parts.length - 1; i++) {
+    const was = at[parts[i]];
+    const copy = was && typeof was === 'object' && !Array.isArray(was) ? { ...(was as Record<string, unknown>) } : {};
+    at[parts[i]] = copy;
+    at = copy;
+  }
+  if (value === undefined) delete at[parts[parts.length - 1]];
+  else at[parts[parts.length - 1]] = value;
+  pageRoot = next;
+  for (const [p, fns] of [...pageListeners]) {
+    if (p === path || p.startsWith(path + '/') || path.startsWith(p + '/')) for (const fn of [...fns]) fn(pageGet(p));
+  }
+}
+function pageSubscribe(path: string, onChange: (v: unknown) => void): () => void {
+  const fns = pageListeners.get(path) ?? new Set<(v: unknown) => void>();
+  fns.add(onChange);
+  pageListeners.set(path, fns);
+  return () => { fns.delete(onChange); if (!fns.size) pageListeners.delete(path); };
+}
+/** Empties the page's state (a test's fresh page). */
+export function resetPageState(): void {
+  pageRoot = {};
+  for (const [p, fns] of [...pageListeners]) for (const fn of [...fns]) fn(pageGet(p));
+}
+const onPage = (path: string) => path === PAGE_PATH.slice(0, -1) || path.startsWith(PAGE_PATH);
+
+type A11yRefs = Pick<Ctx, 'accessibilityRef' | 'validationErrorsRef'>;
+
+function ctxOf(context: ComponentContext, buildChild: (id: string, basePath?: string) => ReactNode, refs: A11yRefs = {}): Ctx {
   const model = context.dataContext.dataModel;
   const base = context.dataContext.path;
   const absolute = (path: string) => DataModel.resolvePath(path, base);
@@ -77,9 +139,18 @@ function ctxOf(context: ComponentContext, buildChild: (id: string, basePath?: st
   return {
     surfaceId: (context.dataContext.surface as { id?: string } | undefined)?.id ?? '',
     componentId: context.componentModel.id,
-    get: <T,>(path: string | undefined) => (path === undefined || path === null || path === '' ? undefined : model.get<T>(absolute(String(path)))),
-    set: (path, value) => { model.set(absolute(path), value); },
-    subscribe: (path, onChange) => { const s = model.subscribe(absolute(path), onChange); return () => s.unsubscribe(); },
+    get: <T,>(path: string | undefined) => {
+      if (path === undefined || path === null || path === '') return undefined;
+      const at = absolute(String(path));
+      return onPage(at) ? pageGet<T>(at) : model.get<T>(at);
+    },
+    set: (path, value) => { const at = absolute(path); if (onPage(at)) pageSet(at, value); else model.set(at, value); },
+    subscribe: (path, onChange) => {
+      const at = absolute(path);
+      if (onPage(at)) return pageSubscribe(at, onChange);
+      const s = model.subscribe(at, onChange);
+      return () => s.unsubscribe();
+    },
     dispatch: (name, extra) => { if (name) void context.dispatchAction({ event: { name, context: extra ?? {} } }); },
     call: (fn, args) => {
       const caller = agentFunctions.get(surfaceOf());
@@ -106,6 +177,8 @@ function ctxOf(context: ComponentContext, buildChild: (id: string, basePath?: st
     },
     child: id => (id ? buildChild(id) : null),
     has: id => Boolean(id && (context.dataContext.surface as { componentsModel?: { get(id: string): unknown } } | undefined)?.componentsModel?.get(id)),
+    accessibilityRef: refs.accessibilityRef,
+    validationErrorsRef: refs.validationErrorsRef,
   };
 }
 
@@ -128,15 +201,42 @@ export function define<P extends { id: string; component: string }>(name: string
   // a list of objects whose named keys reference one child each (a Split's panes): web_core walks it as nested references
   for (const [list, keys] of Object.entries(nested)) shape[list] = z.array(z.object(Object.fromEntries(keys.map(k => [k, ComponentIdSchema.optional()]))).passthrough()).optional();
   const api = { name, schema: z.object(shape).passthrough() };
-  return createBinderlessComponentImplementation(api, ({ context, buildChild }) => {
+  return createBinderlessComponentImplementation(api, ({ context, buildChild, accessibilityRef, validationErrorsRef }) => {
     const [, bump] = useState(0);
     useEffect(() => {
       const sub = context.componentModel.onUpdated.subscribe(() => bump(n => n + 1));
       return () => sub.unsubscribe();
     }, [context.componentModel]);
     const props = { id: context.componentModel.id, component: context.componentModel.type, ...context.componentModel.properties } as P;
-    return createElement(Render, { props, ctx: ctxOf(context, buildChild) });
+    // 1.0's envelope keys (@accessibility, @metadata) are web_core's, on the component model, not among its properties
+    const ctx = ctxOf(context, buildChild, { accessibilityRef, validationErrorsRef });
+    const drawn = createElement(Render, { props, ctx });
+    const skeleton = skeletonOf(context.componentModel.metadata);
+    return skeleton ? createElement(Skeleton, { kind: skeleton, ctx }, drawn) : drawn;
   });
+}
+
+/** The kinds of skeleton a component may declare; any other word draws the plain block. */
+export const SKELETONS = ['text', 'rows', 'card', 'chart'] as const;
+
+/**
+ * A component's declared skeleton (A2UI 1.0 @metadata, extension {@code skeleton}): the shape shown in its place until
+ * the surface's data arrives, so a page streaming its first data shows where things will be rather than empty words.
+ */
+export function skeletonOf(metadata: { extensions?: Readonly<Record<string, unknown>> } | undefined): string | undefined {
+  const k = metadata?.extensions?.skeleton;
+  return typeof k === 'string' && k ? k : undefined;
+}
+
+/** The skeleton until the surface's data has arrived, then the component; busy and named "Loading" meanwhile. */
+function Skeleton({ kind, ctx, children }: { kind: string; ctx: Ctx; children?: ReactNode }) {
+  const arrived = useArrived(ctx);
+  if (arrived) return createElement(Fragment, null, children);
+  const shape = (SKELETONS as readonly string[]).includes(kind) ? kind : 'block';
+  const bars = shape === 'rows' ? 4 : shape === 'text' ? 2 : 1;
+  return createElement('div', { className: `as-skeleton as-skeleton-${shape}`, 'aria-busy': 'true', role: 'status', 'data-skeleton': shape },
+    createElement('span', { className: 'as-visually-hidden' }, 'Loading'),
+    ...Array.from({ length: bars }, (_, i) => createElement('span', { key: i, className: 'bar', 'aria-hidden': 'true' })));
 }
 
 /** A value of the data model at a pointer, re-rendered when it changes. */

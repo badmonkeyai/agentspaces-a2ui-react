@@ -8,6 +8,9 @@
 // the look's categorical hue for the layer's turn, GEO-M-01), bounds, the grid clusters a layer draws below its zoom
 // (GEO-M-04), the search over labels, ids and named properties (GEO-S-01), and the card's fields and age (GEO-S-03).
 import { ICON_NAMES, type IconName } from './geo';
+import { hexRing, hexCenter, tryParseHex } from '../geo/hexgrid';
+import { rampColor, rampDomain, type RampDomain } from './ramp';
+import { rowFilterOf, rowTest, type RowFilter } from './filter';
 
 export type Position = number[];
 export interface Geometry { type: string; coordinates: unknown }
@@ -15,9 +18,13 @@ export interface Style { color?: string; fill?: string; stroke?: string; opacity
 export interface Feature {
   id: string; kind: string; label: string; geometry: Geometry; properties: Record<string, unknown>; style: Style; at: string;
   severity?: string; links?: Array<{ rel: string; id: string }>;
+  /** A hex layer's hexagon (srad/agentspaces-geo.md GEO-M-11): its id, its centre as [longitude, latitude], and the row it draws. */
+  hex?: { id: string; centre: [number, number]; row: Record<string, unknown> };
 }
 export interface FeatureKindRow { kind: string; label?: string; style?: Style; fields?: string[] }
-export interface FeatureLayerSpec { path: string; kind?: string; label?: string; style?: Style; cluster?: { below?: number }; pick?: unknown }
+/** How a hex layer reads its rows (the catalog's GeoMap layer hexes). */
+export interface HexesSpec { id: string; value: string; size?: number; label?: string; card?: Array<{ key: string; title: string }> }
+export interface FeatureLayerSpec { path: string; kind?: string; label?: string; style?: Style; cluster?: { below?: number }; pick?: unknown; hexes?: unknown; filter?: unknown; labels?: unknown; fitNew?: unknown }
 export interface FeatureLayer extends FeatureLayerSpec {
   index: number;
   /** How the layer reads the pick set (the catalog's GeoMap layer pick), when it does. */
@@ -36,6 +43,44 @@ export interface FeatureLayer extends FeatureLayerSpec {
   pending?: boolean;
   /** The path holds a value that is not a list or a map of rows, so no feature of it can be read. */
   broken?: boolean;
+  /** A hex layer: how it reads its rows, and its ramp's domain over every row it holds (before the filter), with the ramp. */
+  hexes?: HexesSpec;
+  ramp?: { domain: RampDomain; steps: readonly string[] };
+  /** The layer's filter (GEO-M-12), and, while it keeps fewer than it holds, how many it keeps of how many. */
+  rowFilter?: RowFilter;
+  filtered?: { kept: number; of: number };
+  /**
+   * The ids of the features whose labels the layer shows (its labels' filter), when it keeps them to some; nothing shows
+   * every label. The selected and the hovered feature's label shows either way.
+   */
+  labelIds?: ReadonlySet<string>;
+  /** The GeoLayout windows (pages) while any of which is open the layer shows no label but the selected and hovered one's. */
+  hideLabelsWhileOpen?: readonly string[];
+}
+
+/**
+ * The features a map's fitNew layers (the catalog's GeoMap layer fitNew) did not hold at the last drawing, and records what
+ * they hold now in `held` (by layer index). A layer still to arrive is skipped, and a layer's first record fits nothing,
+ * so a page that opens, or whose data arrives, keeps its view (kismet-life-patterns §10.13).
+ */
+export function freshFeatures(layers: readonly FeatureLayer[], held: Map<number, Set<string>>): Feature[] {
+  const fresh: Feature[] = [];
+  for (const l of layers) {
+    if (l.fitNew !== true || l.pending) continue;
+    const before = held.get(l.index);
+    held.set(l.index, new Set(l.features.map(f => f.id)));
+    if (before) fresh.push(...l.features.filter(f => !before.has(f.id)));
+  }
+  return fresh;
+}
+
+/** A layer's labels (the catalog's GeoMap layer labels): its filter and the windows that hide them, when it reads. */
+export function labelsSpecOf(v: unknown): { filter?: RowFilter; hideWhileOpen: string[] } | undefined {
+  const l = v as { filter?: unknown; hideWhileOpen?: unknown } | null | undefined;
+  if (!l || typeof l !== 'object') return undefined;
+  const filter = rowFilterOf(l.filter);
+  const hideWhileOpen = Array.isArray(l.hideWhileOpen) ? l.hideWhileOpen.filter((p): p is string => typeof p === 'string' && p !== '') : [];
+  return filter || hideWhileOpen.length ? { ...(filter ? { filter } : {}), hideWhileOpen } : undefined;
 }
 
 /** What a person sees of a map's features as a whole: them, none yet, none arrived yet, or a path that does not read. */
@@ -100,22 +145,101 @@ export function kindOf(kinds: readonly FeatureKindRow[], kind: string): FeatureK
   return best;
 }
 
-/** The layers over the data: each layer's GeoFeatures of its kind, its hue, and its total when the data says. */
-export function featureLayers(specs: readonly FeatureLayerSpec[], dataAt: (path: string) => unknown, hues: readonly string[]): FeatureLayer[] {
+/** A hex layer's spec as the catalog gives it, or nothing when it does not read. */
+export function hexesSpecOf(v: unknown): HexesSpec | undefined {
+  const h = v as { id?: unknown; value?: unknown; size?: unknown; label?: unknown; card?: unknown } | null | undefined;
+  if (!h || typeof h !== 'object' || typeof h.id !== 'string' || !h.id || typeof h.value !== 'string' || !h.value) return undefined;
+  const card = Array.isArray(h.card) ? h.card.filter((c): c is { key: string; title: string } => Boolean(c) && typeof c.key === 'string' && c.key !== '' && typeof c.title === 'string' && c.title.trim() !== '') : [];
+  return { id: h.id, value: h.value, ...(typeof h.size === 'number' && Number.isInteger(h.size) ? { size: h.size } : {}), ...(typeof h.label === 'string' && h.label ? { label: h.label } : {}),
+    ...(card.length ? { card } : {}) };
+}
+
+/** A GeoFeature's column for a filter: its property, else its id, kind or label. */
+const featureColumn = (f: Feature) => (c: string): unknown => (c in f.properties ? f.properties[c] : c === 'id' ? f.id : c === 'kind' ? f.kind : c === 'label' ? f.label : undefined);
+
+/**
+ * A hex layer's features (GEO-M-11): each row whose id column is a hex id of the layer's size (and whose kind column
+ * matches the layer's kind) becomes its hexagon, coloured by its value on the ramp over every such row; the filter keeps
+ * the rows whose columns equal the value at its path; rows that share a hex draw once, as the one of the greatest value.
+ */
+function hexFeatures(rows: readonly unknown[], spec: FeatureLayerSpec, h: HexesSpec, filter: RowFilter | undefined, filterValue: unknown, ramp: readonly string[]):
+  { features: Feature[]; domain?: RampDomain; held: number; kept: number } {
+  const own = styleOf(spec.style);
+  const opacity = own.opacity ?? 0.6;
+  const fixedKind = spec.kind && !spec.kind.endsWith('*') ? spec.kind : '';
+  const held: Array<{ row: Record<string, unknown>; id: string; value: number; kind: string }> = [];
+  for (const r of rows) {
+    if (!r || typeof r !== 'object') continue;
+    const row = r as Record<string, unknown>;
+    const cell = tryParseHex(row[h.id]);
+    if (!cell || (h.size !== undefined && cell.size !== h.size)) continue;
+    const kind = typeof row.kind === 'string' && row.kind ? row.kind : fixedKind || 'hex';
+    if (!kindMatches(spec.kind, kind)) continue;
+    const n = typeof row[h.value] === 'number' ? (row[h.value] as number) : Number(row[h.value]);
+    held.push({ row, id: row[h.id] as string, value: Number.isFinite(n) ? n : 0, kind });
+  }
+  const domain = rampDomain(held.map(x => x.value));
+  const test = filter ? rowTest(filterValue, filter.match) : undefined;
+  const kept = test ? held.filter(x => test(c => x.row[c])) : held;
+  const best = new Map<string, (typeof held)[number]>();
+  for (const x of kept) { const b = best.get(x.id); if (!b || x.value > b.value) best.set(x.id, x); }
+  const features: Feature[] = [...best.values()].map(x => {
+    const color = domain ? rampColor(x.value, domain, ramp) : ramp[ramp.length - 1] ?? '#4477aa';
+    const [lat, lon] = hexCenter(x.id);
+    const label = h.label && typeof x.row[h.label] === 'string' && x.row[h.label] ? (x.row[h.label] as string) : x.id;
+    // the card's columns under their titles, when the layer names them (§10.13); the selectAction's row keeps every column
+    const properties = h.card ? Object.fromEntries(h.card.filter(c => x.row[c.key] !== undefined && x.row[c.key] !== null && x.row[c.key] !== '').map(c => [c.title.trim(), x.row[c.key]])) : { ...x.row };
+    return { id: x.id, kind: x.kind, label, geometry: { type: 'Polygon', coordinates: [hexRing(x.id)] }, properties, style: { color, fill: color, stroke: color, opacity, width: own.width ?? 1 },
+      at: typeof x.row.at === 'string' ? x.row.at : '', hex: { id: x.id, centre: [lon, lat], row: x.row } };
+  });
+  return { features, domain, held: held.length, kept: kept.length };
+}
+
+/**
+ * The layers over the data: each layer's GeoFeatures of its kind (or a hex layer's hexagons), its hue, its total when the
+ * data says, and its filter's count. dataAt reads a path of the data model, the filters' paths too; ramp is the look's
+ * sequential ramp, which a hex layer colours by.
+ */
+export function featureLayers(specs: readonly FeatureLayerSpec[], dataAt: (path: string) => unknown, hues: readonly string[], ramp: readonly string[] = []): FeatureLayer[] {
   return specs.map((spec, index) => {
     const v = dataAt(spec.path);
     const rows = Array.isArray(v) ? v : v && typeof v === 'object' ? Object.values(v as Record<string, unknown>) : [];
     const pending = v === undefined;
     const broken = !pending && !Array.isArray(v) && !(v && typeof v === 'object');
-    const features = rows.map(featureOf).filter((f): f is Feature => Boolean(f) && kindMatches(spec.kind, f!.kind));
+    const filter = rowFilterOf(spec.filter);
+    const filterValue = filter ? dataAt(filter.path) : undefined;
+    const hexes = hexesSpecOf(spec.hexes);
+    let features: Feature[];
+    let whole: boolean;
+    let extra: Partial<FeatureLayer> = {};
+    if (hexes) {
+      const steps = ramp.length ? ramp : ['#4477aa'];
+      const made = hexFeatures(rows, spec, hexes, filter, filterValue, steps);
+      features = made.features;
+      whole = false;
+      extra = { ...(made.domain ? { ramp: { domain: made.domain, steps } } : {}), ...(filter ? { rowFilter: filter } : {}), ...(made.kept < made.held ? { filtered: { kept: made.kept, of: made.held } } : {}) };
+    } else {
+      const all = rows.map(featureOf).filter((f): f is Feature => Boolean(f) && kindMatches(spec.kind, f!.kind));
+      const test = filter ? rowTest(filterValue, filter.match) : undefined;
+      features = test ? all.filter(f => test(featureColumn(f))) : all;
+      whole = all.length === rows.length;
+      extra = { ...(filter ? { rowFilter: filter } : {}), ...(features.length < all.length ? { filtered: { kept: features.length, of: all.length } } : {}) };
+    }
     const t = dataAt(spec.path + 'Total');
     // the binding's total counts every kind it matched: it is this layer's own only when the layer took the whole path
-    const whole = features.length === rows.length;
-    const total = typeof t === 'number' && whole ? t : undefined;
-    const cut = typeof t === 'number' && !whole && t > rows.length ? { held: rows.length, total: t } : undefined;
+    const total = typeof t === 'number' && whole && !extra.filtered ? t : undefined;
+    const cut = typeof t === 'number' && !(whole && !extra.filtered) && t > rows.length ? { held: rows.length, total: t } : undefined;
+    // the labels' filter (§10.13): the features whose columns equal the value at its path show their labels
+    const labels = labelsSpecOf(spec.labels);
+    const labelTest = labels?.filter ? rowTest(dataAt(labels.filter.path), labels.filter.match) : undefined;
+    if (labelTest) extra = { ...extra, labelIds: new Set(features.filter(f => labelTest(featureColumn(f))).map(f => f.id)) };
+    if (labels?.hideWhileOpen.length) extra = { ...extra, hideLabelsWhileOpen: labels.hideWhileOpen };
     const own = styleOf(spec.style);
     const picks = pickSpecOf(spec.pick);
-    return { ...spec, style: own, index, ...(picks ? { picks } : {}), color: own.color ?? own.stroke ?? hues[index % Math.max(1, hues.length)] ?? '#4477aa', features, total, ...(cut ? { cut } : {}), ...(pending ? { pending } : {}), ...(broken ? { broken } : {}) };
+    const color = own.color ?? own.stroke ?? (hexes && ramp.length ? ramp[ramp.length - 1] : undefined) ?? hues[index % Math.max(1, hues.length)] ?? '#4477aa';
+    // the design's raw hexes give way to the read one, and a layer with none carries no hexes key
+    const { hexes: _raw, ...rest } = spec;
+    return { ...rest, style: own, index, ...(picks ? { picks } : {}), color, features, total, ...(cut ? { cut } : {}), ...(pending ? { pending } : {}), ...(broken ? { broken } : {}), ...extra, ...(hexes ? { hexes } : {}) };
   });
 }
 
@@ -397,10 +521,29 @@ export function byId(layers: readonly FeatureLayer[]): Map<string, { feature: Fe
 
 /** Where the browser keeps a map's view: per page (the app's address), surface and map. */
 export const viewKey = (surfaceId: string, mapId: string) => `agentspaces-geo:view:${typeof location === 'undefined' ? '' : location.pathname}:${surfaceId}:${mapId}`;
+/**
+ * Where the browser keeps whether a map's legend shows its layer entries (srad/agentspaces-geo.md GEO-M-14): per page,
+ * surface and map, as the view is kept.
+ */
+export const legendKey = (surfaceId: string, mapId: string) => `agentspaces-geo:legend:${typeof location === 'undefined' ? '' : location.pathname}:${surfaceId}:${mapId}`;
+/** The most characters a legend toggle's words take (the catalog's maxLength), and its words when a design gives none. */
+export const LEGEND_TOGGLE_MAX = 24;
+export const LEGEND_TOGGLE_LABEL = 'Layers';
+
+/** A design's legend toggle: its words and whether the entries start hidden, or nothing (none, or a map with no legend). */
+export function legendToggleOf(props: { legend?: unknown; legendToggle?: unknown }): { label: string; hidden: boolean } | undefined {
+  const t = props.legendToggle as { label?: unknown; hidden?: unknown } | undefined;
+  if (props.legend === false || !t || typeof t !== 'object' || Array.isArray(t)) return undefined;
+  const words = typeof t.label === 'string' ? t.label.replace(/[\u0000-\u001f\u007f]/g, ' ').trim() : '';
+  return { label: words ? Array.from(words).slice(0, LEGEND_TOGGLE_MAX).join('') : LEGEND_TOGGLE_LABEL, hidden: t.hidden === true };
+}
 
 /** A layer's count, with the binding's total when it holds fewer (GEO-F-05): "5,000 of 12,400". */
 export function capped(l: FeatureLayer): string {
   const n = l.features.length;
+  // a filter's count (GEO-M-12): the rows or features it keeps of those the layer holds
+  // (a hex layer draws rows that share a hex once, so it may show fewer than the filter kept)
+  if (l.filtered) return `${n === l.filtered.kept ? '' : `${n.toLocaleString('en')} shown, `}${l.filtered.kept.toLocaleString('en')} of ${l.filtered.of.toLocaleString('en')} kept by the filter`;
   if (typeof l.total === 'number' && l.total > n) return `${n.toLocaleString('en')} of ${l.total.toLocaleString('en')}`;
   // a layer of some kinds on a cut binding: its count among the newest the binding holds
   if (l.cut) return `${n.toLocaleString('en')}, from the newest ${l.cut.held.toLocaleString('en')} of ${l.cut.total.toLocaleString('en')}`;
@@ -445,9 +588,29 @@ function insideRing(lon: number, lat: number, ring: [number, number][]): boolean
 const SEVERITY_RANK: Record<string, number> = { critical: 3, serious: 2, warning: 1, info: 0 };
 
 /** A watchbox's rows: newest first by when each was observed, the graver first on a tie, at most max. */
-export function watchRows(features: readonly Feature[], max = 200): Feature[] {
+export function watchRows(features: readonly Feature[], max = 200, sort?: string): Feature[] {
   const t = (f: Feature) => { const v = Date.parse(f.at); return Number.isFinite(v) ? v : 0; };
-  return [...features].sort((a, b) => t(b) - t(a) || (SEVERITY_RANK[b.severity ?? ''] ?? -1) - (SEVERITY_RANK[a.severity ?? ''] ?? -1) || a.id.localeCompare(b.id)).slice(0, Math.max(1, max));
+  const newest = (a: Feature, b: Feature) => t(b) - t(a) || (SEVERITY_RANK[b.severity ?? ''] ?? -1) - (SEVERITY_RANK[a.severity ?? ''] ?? -1) || a.id.localeCompare(b.id);
+  const by = sort ? sortOf(sort) : undefined;
+  return [...features].sort(by ? (a, b) => by(a, b) || newest(a, b) : newest).slice(0, Math.max(1, max));
+}
+
+/**
+ * A watchbox's sort (GEO-W-07): a feature property, a leading - for descending; numbers by value, other values as text,
+ * a feature without the property last whichever way.
+ */
+export function sortOf(sort: string): ((a: Feature, b: Feature) => number) | undefined {
+  const desc = sort.startsWith('-');
+  const key = desc ? sort.slice(1) : sort;
+  if (!key) return undefined;
+  const has = (v: unknown) => v !== undefined && v !== null && v !== '';
+  return (a, b) => {
+    const x = a.properties[key], y = b.properties[key];
+    if (!has(x) || !has(y)) return has(x) === has(y) ? 0 : has(x) ? -1 : 1;
+    const nx = typeof x === 'number' ? x : Number.NaN, ny = typeof y === 'number' ? y : Number.NaN;
+    const c = Number.isFinite(nx) && Number.isFinite(ny) ? nx - ny : String(x).localeCompare(String(y));
+    return desc ? -c : c;
+  };
 }
 
 /** A row's property line: each named property that is set, as "name value", joined. */

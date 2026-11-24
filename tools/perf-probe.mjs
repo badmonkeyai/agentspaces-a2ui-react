@@ -12,6 +12,9 @@
 //              the same way, then zoomed in until the labels show and panned again
 //   graph-svg  the same graph with WebGL hidden from the page, so it draws SVG: the drawing the WebGL one replaces,
 //              panned, then zoomed in until the labels show and panned again
+//   hexes      a GeoMap hex layer (srad/agentspaces-geo.md GEO-M-11, M-12) of 500, then 2,000 hexes, four rows each (one
+//              per hour), filtered by the hour at /hour, panned while the page changes the hour every 250 ms, so each
+//              change refilters, recolours and redraws the hexes under the moving view
 // After the WebGL graph's pans the probe takes its WebGL context away (WEBGL_lose_context), as a browser does when a page
 // holds too many, and checks the view draws SVG instead of a blank canvas.
 //
@@ -29,7 +32,7 @@
 // and writes dist/perf.json.
 // The targets, while panning: 30 frames shown a second, at least 30 pointer moves a second reaching the page, and a
 // picture that moved; and a layout under 2 s. A missed target exits 1.
-//   node tools/perf-probe.mjs [--headful] [--dpr=2] [--seconds=6] [--only=map,graph,graph-svg]
+//   node tools/perf-probe.mjs [--headful] [--dpr=2] [--seconds=6] [--only=map,graph,graph-svg,hexes]
 // Headless Chrome is tried with the GPU (Metal through ANGLE on macOS). When the page reports a software renderer
 // (SwiftShader), the numbers measure the CPU, not the laptop's GPU: run with --headful, which opens a real window,
 // placed off the screen. Chrome is stopped by its own process id and its profile removed, whatever happens.
@@ -49,7 +52,7 @@ if (!existsSync(CHROME)) { console.log('perf-probe: skipped (no Chrome at ' + CH
 const WIDTH = 2560, HEIGHT = 1440;
 const DPR = Number(args.dpr ?? 1);
 const SECONDS = Number(args.seconds ?? 6);
-const ONLY = new Set(String(args.only ?? 'map,graph,graph-svg').split(','));
+const ONLY = new Set(String(args.only ?? 'map,graph,graph-svg,hexes').split(','));
 const debug = 9400 + Math.floor(Math.random() * 300);
 const dir = '/tmp/as_perf_' + debug;
 const profile = dir + '-profile';
@@ -72,6 +75,18 @@ function mapData() {
       geometry: { type: 'Polygon', coordinates: [[[x, y], [x + w, y + 0.2 * v], [x + w * 0.8, y + v], [x - 0.1 * w, y + v * 0.7], [x, y]]] } };
   });
   return { points, areas };
+}
+// n hexes of the pure grid in a city, each with a row for each of four hours, a score that moves with the hour
+function hexData(n) {
+  const r = rng(11);
+  const seen = new Set(), rows = [];
+  while (seen.size < n) {
+    const id = ui.hexOf(39.60 + 0.30 * r(), -105.15 + 0.35 * r(), 225);
+    if (seen.has(id)) continue;
+    seen.add(id);
+    for (let hr = 0; hr < 4; hr++) rows.push({ hex: id, hour: hr, score: Math.round(100 * r()) / 100, name: 'Hex ' + seen.size });
+  }
+  return rows;
 }
 function graphData() {
   const nodes = Array.from({ length: 2000 }, (_, i) => ({ id: 'n' + i, label: 'node ' + i, kind: 'kind ' + (i % 6) }));
@@ -109,6 +124,32 @@ window.asPerf = {
     root.render(h(ui.Surfaces, { envelopes: surface('agentspaces-geo', [{ id: 'map', component: 'GeoMap', basemap: 'plain', home: { center: [0, 46], zoom: 5 },
       layers: [{ path: '/areas', label: 'Areas' }, { path: '/points', label: 'Points' }] }], { points, areas }) }));
     return { points: points.length, polygons: areas.length };
+  },
+  hexes(n) {
+    const rows = hexData(n);
+    document.body.dataset.scene = 'hexes-' + n;
+    window.__hexEnv = surface('agentspaces-geo', [{ id: 'map', component: 'GeoMap', basemap: 'plain', home: { center: [-104.97, 39.75], zoom: 11 },
+      layers: [{ path: '/hexes', label: 'Hexes', hexes: { id: 'hex', value: 'score', size: 225, label: 'name' }, filter: { path: '/hour', match: 'hour' } }] }], { hexes: rows, hour: 0 });
+    root.render(h(ui.Surfaces, { envelopes: window.__hexEnv }));
+    return { hexes: n, rows: rows.length };
+  },
+  // changes the filter's hour every ms while on, as a person clicking a weekday-hour grid would, appending one envelope a change
+  cycle(on, ms) {
+    clearInterval(window.__cycle);
+    window.__changes = 0;
+    if (!on) return 0;
+    let hour = 0;
+    window.__cycle = setInterval(() => {
+      hour = (hour + 1) % 4;
+      window.__hexEnv = [...window.__hexEnv, { version: '1.0', updateDataModel: { surfaceId: 'probe', path: '/hour', value: hour } }];
+      root.render(h(ui.Surfaces, { envelopes: window.__hexEnv }));
+      window.__changes++;
+    }, ms);
+    return 0;
+  },
+  shownHexes() {
+    const m = document.querySelector('[data-component="GeoMap"] .legend .entry');
+    return m ? m.textContent : '';
   },
   graph(svg) {
     const g = graphData();
@@ -302,6 +343,24 @@ try {
     const frames = await pan(WIDTH / 2, HEIGHT / 2, 'gl');
     result.scenes.map = { ...drawn, pan: frames };
     report('map', `${drawn.points.toLocaleString('en')} points, ${drawn.polygons} polygons`, frames);
+  }
+  if (ONLY.has('hexes')) {
+    result.scenes.hexes = {};
+    for (const n of [500, 2000]) {
+      await load();
+      const drawn = await evaluate(`asPerf.hexes(${n})`);
+      await until(`asPerf.state().map === 'map'`, 30000, 'the hex map');
+      await sleep(2000);
+      await evaluate('asPerf.cycle(true, 250)');
+      const frames = await pan(WIDTH / 2, HEIGHT / 2, 'gl');
+      const changes = await evaluate('window.__changes');
+      await evaluate('asPerf.cycle(false)');
+      const legend = await evaluate('asPerf.shownHexes()');
+      frames.filterChanges = changes;
+      result.scenes.hexes[n] = { ...drawn, legend, pan: frames };
+      report('hexes', `${n.toLocaleString('en')} hexes (${drawn.rows.toLocaleString('en')} rows), the filter changed ${changes} times while panning`, frames);
+      if (!/kept by the filter/.test(legend)) { console.log(`perf-probe: the hex layer did not filter (${legend})`); failed++; }
+    }
   }
   if (ONLY.has('graph')) {
     await load();

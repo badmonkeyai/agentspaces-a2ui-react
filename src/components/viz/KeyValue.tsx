@@ -3,7 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 // agentspaces-viz/KeyValue: facts as label and value pairs: the items given (a literal or a path each), or every
-// scalar field of the object at a path.
+// scalar field of the object at a path. An item bound to a path whose value is a blank text says nothing, so it is left
+// out (kismet-life-patterns §10.13: the Life Matrix's "Cut" row drew a label over an empty value); a value not there yet
+// still reads as a dash.
 import { define, fmt, useData, type Ctx } from '../../renderer/implementation';
 import type { KeyValueProps } from '../../generated/props';
 
@@ -12,6 +14,7 @@ const pointer = (v: unknown): string | undefined => (typeof v === 'string' && v.
 function Item({ ctx, label, value }: { ctx: Ctx; label: string; value: unknown }) {
   const bound = useData<unknown>(ctx, pointer(value));
   const shown = pointer(value) ? bound : value;
+  if (pointer(value) && typeof shown === 'string' && !shown.trim()) return null;
   return <><dt>{label}</dt><dd>{shown === undefined || shown === null ? <span className="bma-muted">—</span> : fmt(shown)}</dd></>;
 }
 

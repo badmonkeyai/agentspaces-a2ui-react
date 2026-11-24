@@ -17,7 +17,7 @@ import { KeyOrder, TrailBook, headingOf, iconName, iconUrl, labelOf, number, pol
 import { anchorOf, clusterPoints, featureBounds, fitPadding, lookOf, pointsOf, positionsOf, type Feature, type MapInsets, type PointItem, type FeatureKindRow, type FeatureLayer } from './features';
 export type { MapInsets } from './features';
 import type { BasemapStyle } from './basemaps';
-import { LABEL_PAD, LABEL_SIZE, placeLabels, rankLabels, type PlacedLabel } from './labels';
+import { LABEL_PAD, LABEL_SIZE, layoutLabels, rankLabels, type LabelInsets, type PlacedLabel } from './labels';
 
 export type { MapLayer, Row } from './geo';
 
@@ -68,7 +68,10 @@ function inkOn([r, g, b]: Rgb): Rgb {
   const y = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
   return y > 0.22 ? [19, 25, 31] : [255, 255, 255];
 }
-interface Chip { key: string; position: [number, number]; label: string; dy: number; lit: boolean; pin?: Rgb }
+/** A label chip; a quiet one (its layer keeps its labels to some features, §10.13) shows only while selected or hovered. */
+interface Chip { key: string; position: [number, number]; label: string; dy: number; lit: boolean; pin?: Rgb; quiet?: boolean }
+/** The chips shown and the moves (px) that keep the always-shown ones inside the visible part of the map. */
+interface ChipLayout { shown: Set<string>; shift: Map<string, [number, number]> }
 /** The colours of a label chip: clear when left out, the accent when lit (selected), else the mode's translucent chip. */
 function chipColors(dark: boolean, accent: Rgb) {
   const ink: Rgb = dark ? [229, 234, 240] : [32, 44, 56];
@@ -80,27 +83,31 @@ function chipColors(dark: boolean, accent: Rgb) {
 }
 /** A TextLayer of label chips; `shown` names the chips drawn, the rest are clear. The glyphs come from the labels
  * themselves (characterSet 'auto'): the default set is ASCII, so 'Bahía' drew as 'Bah a' (2026-11-13). */
-function chipLayer(id: string, data: Chip[], shown: Set<string>, colors: ReturnType<typeof chipColors>, font: string, version: number, transitions?: Record<string, unknown>) {
+function chipLayer(id: string, data: Chip[], layout: ChipLayout, colors: ReturnType<typeof chipColors>, font: string, version: number, transitions?: Record<string, unknown>) {
+  const { shown, shift } = layout;
   return new TextLayer({ id, data, getPosition: (d: Chip) => d.position, getText: (d: Chip) => d.label, getSize: LABEL_SIZE,
-    getColor: colors.text(shown) as never, getPixelOffset: (d: Chip) => [0, d.dy], getTextAnchor: 'middle', getAlignmentBaseline: 'top',
+    getColor: colors.text(shown) as never, getPixelOffset: ((d: Chip) => { const m = shift.get(d.key); return m ? [m[0], d.dy + m[1]] : [0, d.dy]; }) as never, getTextAnchor: 'middle', getAlignmentBaseline: 'top',
     fontFamily: font, fontWeight: 500, characterSet: 'auto', background: true, getBackgroundColor: colors.back(shown) as never, getBorderColor: colors.border(shown) as never,
     backgroundBorderRadius: 4, backgroundPadding: LABEL_PAD, transitions: transitions as never,
     getBorderWidth: ((d: Chip) => (d.pin ? 2 : 1)) as never,
-    updateTriggers: { getColor: [version], getBackgroundColor: [version], getBorderColor: [version], getBorderWidth: [version] } });
+    updateTriggers: { getColor: [version], getBackgroundColor: [version], getBorderColor: [version], getBorderWidth: [version], getPixelOffset: [version] } });
 }
-/** The chips a map shows now: the lit ones and the hovered one always, the rest by rank where they fit on the screen. */
-function shownChips(map: maplibregl.Map, container: HTMLElement, ranked: Chip[], hovered?: string): Set<string> {
+/**
+ * The chips a map shows now: the lit ones and the hovered one always, the rest by rank where they fit inside the part of
+ * the map the insets (the docked windows and the controls) leave visible; a quiet chip only when lit or hovered.
+ */
+function shownChips(map: maplibregl.Map, container: HTMLElement, ranked: Chip[], hovered?: string, insets?: LabelInsets): ChipLayout {
   const placed: PlacedLabel[] = [];
   // a picked key's chip shows at any zoom (GEO-M-10), as the selected one and the hovered one do
   const always = (c: Chip) => c.lit || Boolean(c.pin) || c.key === hovered;
   for (const pass of [true, false]) {
     for (const c of ranked) {
-      if (always(c) !== pass) continue;
+      if (always(c) !== pass || (!pass && c.quiet)) continue;
       const p = map.project(c.position);
       placed.push({ key: c.key, label: c.label, x: p.x, y: p.y, dy: c.dy, always: pass });
     }
   }
-  return placeLabels(placed, container.clientWidth, container.clientHeight);
+  return layoutLabels(placed, container.clientWidth, container.clientHeight, undefined, undefined, insets);
 }
 /** The page's font for the labels, read once from the map's container (the look's family), else the system's. */
 const fontOf = (container: HTMLElement) => { try { return getComputedStyle(container).fontFamily || 'system-ui, sans-serif'; } catch { return 'system-ui, sans-serif'; } };
@@ -129,9 +136,9 @@ export async function createMap(container: HTMLElement, options: { center?: [num
   let version = 0;
   const relabel = () => {
     if (!drawn) return;
-    const shown = shownChips(map, container, drawn.chips.flatMap(c => c.ranked));
+    const layout = shownChips(map, container, drawn.chips.flatMap(c => c.ranked));
     version++;
-    overlay.setProps({ layers: [...drawn.base, ...drawn.chips.map(c => chipLayer(c.id, c.data, shown, colors, font, version, c.transitions))] });
+    overlay.setProps({ layers: [...drawn.base, ...drawn.chips.map(c => chipLayer(c.id, c.data, layout, colors, font, version, c.transitions))] });
   };
   map.on('moveend', relabel);
   return {
@@ -226,6 +233,16 @@ function centroid(ring: [number, number][]): [number, number] {
 // critical severity a ring in its status colour. A click on a feature selects it, a click on a cluster zooms to it, and
 // a click on empty map clears the selection.
 
+/** The longest a fly-to animates (ms); a flight that would take longer jumps (MapLibre's maxDuration). */
+export const FLY_MAX_MS = 1500;
+/** How long a fly-to's fit of a line or a polygon to its bounds animates (ms). */
+const FIT_MS = 800;
+
+/** Whether the person asks for less motion (prefers-reduced-motion): a fly-to then jumps. */
+function reducedMotion(): boolean {
+  try { return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; }
+}
+
 export interface GeoView { center: [number, number]; zoom: number; bearing?: number; pitch?: number }
 
 export interface GeoDrawOptions {
@@ -245,6 +262,10 @@ export interface GeoDrawOptions {
    * stroke, over a white halo), one chip per picked key at any zoom, and the layers drawn at half opacity meanwhile.
    */
   picks?: { hue: ReadonlyMap<string, string>; chips: ReadonlyArray<{ key: string; feature: Feature; hue: string }>; dimmed: ReadonlySet<number> };
+  /** How far in the docked windows and the map's controls reach (px): no label is drawn under them (§10.13). */
+  insets?: LabelInsets;
+  /** The layers (by index) that show no label but the selected and the hovered feature's now (their windows are open). */
+  quietLabels?: ReadonlySet<number>;
 }
 
 export interface GeoAdapter {
@@ -321,9 +342,9 @@ export async function createGeoMap(container: HTMLElement, options: { view: GeoV
   const relabel = () => {
     if (!drawn) return;
     const d = drawn;
-    const shown = shownChips(map, container, d.ranked, hovered);
+    const layout = shownChips(map, container, d.ranked, hovered, last?.options.insets);
     version++;
-    chipLayers = d.chips.map(c => chipLayer(c.id, c.data, shown, d.colors, font, version, c.transitions));
+    chipLayers = d.chips.map(c => chipLayer(c.id, c.data, layout, d.colors, font, version, c.transitions));
     paint();
   };
   map.on('moveend', relabel);
@@ -432,8 +453,12 @@ export async function createGeoMap(container: HTMLElement, options: { view: GeoV
         pickable: true, onClick: select, onHover: hover, transitions: t, opacity, updateTriggers: { getColor: [looks] } }));
       // labels as chips where they can be read (past zoom 11, or a layer of a few hundred points), and of those the ones
       // that fit without overlapping, by rank (./labels); the selected feature's on the accent
+      // a layer's labels kept to some features (its labels' filter), or to none while its windows are open, leave the
+      // others quiet: they show while hovered or selected (§10.13)
+      const quietAll = Boolean(o.quietLabels?.has(l.index));
       const labelled = data.filter(d => d.label && (zoom >= 11 || data.length <= 300))
-        .map(d => ({ key: d.key, position: d.position, label: d.label, dy: d.look.size * 0.6, lit: d.id === o.selected, severity: d.severity, at: d.at }));
+        .map(d => ({ key: d.key, position: d.position, label: d.label, dy: d.look.size * 0.6, lit: d.id === o.selected, severity: d.severity, at: d.at,
+          ...(quietAll || (l.labelIds && !l.labelIds.has(d.id)) ? { quiet: true } : {}) }));
       if (labelled.length) { chips.push({ id: id + '-labels', data: labelled, transitions: t }); ranks.push(...labelled); }
     }
     // one chip per picked key, at any zoom, bordered in its hue: on its route, else its first point (GEO-M-10)
@@ -473,15 +498,20 @@ export async function createGeoMap(container: HTMLElement, options: { view: GeoV
     setFeatures: draw,
     flyTo(f, insets) {
       const pad = fitPadding(insets, 64, container.clientWidth, container.clientHeight);
+      // a person who asks for less motion gets the jump, never a flight
+      const still = reducedMotion();
       if (f.geometry.type === 'Point') {
         // the point at the middle of the visible part: an offset from the container's centre, which (unlike a camera
-        // padding) the map does not keep for later moves
+        // padding) the map does not keep for later moves. A flight lasts at most FLY_MAX_MS: one that would take longer
+        // (a move far beyond the view, a city to another) is a jump, so the map never sweeps out over another region for
+        // seconds on the way (a fly from one city to another took five, zoomed out over the region between)
         const at = anchorOf(f)!;
-        map.flyTo({ center: at, zoom: Math.max(14, map.getZoom()), offset: [(pad.left - pad.right) / 2, (pad.top - pad.bottom) / 2], essential: true });
+        map.flyTo({ center: at, zoom: Math.max(14, map.getZoom()), offset: [(pad.left - pad.right) / 2, (pad.top - pad.bottom) / 2], essential: true,
+          maxDuration: FLY_MAX_MS, ...(still ? { duration: 0 } : {}) });
         return;
       }
       const b = featureBounds([f]);
-      if (b) map.fitBounds(b, { padding: pad, maxZoom: 16, duration: 800 });
+      if (b) map.fitBounds(b, { padding: pad, maxZoom: 16, duration: still ? 0 : FIT_MS });
     },
     fit(features, insets, animate = false) {
       const b = featureBounds(features);

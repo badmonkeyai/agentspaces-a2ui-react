@@ -11,4 +11,4 @@ export { LayerMenuView } from './LayerMenuView';
 export { WatchboxView, ARRIVAL_MS } from './WatchboxView';
 export { DrawControl, CLICK_PX, CORNER_PX, KEYBOARD_RADIUS_M, SENT_NOTE_MS } from './DrawControl';
 // the map's label placement is pure (no map library), so it rides in this chunk for the tests to reach by loadGeo()
-export { placeLabels, rankLabels, labelBox, LABEL_MAX } from '../viz/labels';
+export { placeLabels, layoutLabels, visibleArea, rankLabels, labelBox, LABEL_MAX } from '../viz/labels';

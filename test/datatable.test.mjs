@@ -153,3 +153,67 @@ test('the pick set stays in the browser\'s memory: nothing in storage, the addre
   assert.deepEqual(p.actions, [], 'a pick dispatches nothing');
   await p.unmount();
 });
+
+// srad/agentspaces-geo.md GEO-D-09 to D-11: a filter by a value at a path, a row action that picks a row's keys, a state
+// column of A2A task states, and the table's loading and error states
+const TASKS = [
+  { task: 'Survey the dock', lane: 'north', state: 'working', pair: ['Ana', 'Ben'] }, { task: 'Count the pallets', lane: 'north', state: 'completed', pair: 'Cy' },
+  { task: 'Check the gate', lane: 'south', state: 'failed', pair: [] }, { task: 'Wait', lane: 'south', state: 'input-required', pair: ['Ana', 'Ben', 'Cy', 'Dee', 'E', 'F', 'G', 'H', 'I'] },
+];
+const taskCols = [{ key: 'task', title: 'Task' }, { key: 'state', title: 'State', format: 'state' }];
+
+test('rowFilter keeps the rows that match the value at its path, says how many, and follows the value as it changes', async () => {
+  const { container, push, unmount } = await page([{ id: 't', component: 'DataTable', columns: taskCols, rows: '/tasks', rowFilter: { path: '/lane', match: 'lane' } }], { tasks: TASKS, lane: 'north' });
+  const tasks = () => [...container.querySelectorAll('tbody tr')].map(r => r.querySelector('td').textContent);
+  assert.deepEqual(tasks(), ['Survey the dock', 'Count the pallets']);
+  assert.match(container.textContent, /2 of 4 rows/);
+  await push('/lane', 'south');
+  assert.deepEqual(tasks(), ['Check the gate', 'Wait']);
+  await push('/lane', 'east');
+  assert.match(container.textContent, /No row matches what the page shows now/);
+  await push('/lane', null);
+  assert.equal(tasks().length, 4, 'an empty value keeps every row');
+  assert.match(container.textContent, /4 rows/);
+  await unmount();
+});
+
+test('a state column reads each A2A state as its word beside its icon, never colour alone; any other value as it is', async () => {
+  const { container, unmount } = await page([{ id: 't', component: 'DataTable', columns: taskCols, rows: '/tasks' }], { tasks: [...TASKS, { task: 'Odd', state: 'paused' }] });
+  const states = [...container.querySelectorAll('.as-task-state')];
+  assert.deepEqual(states.map(s => [s.dataset.state, s.textContent]), [['working', '◐working'], ['completed', '✓completed'], ['failed', '✕failed'], ['input-required', '!input-required']]);
+  assert.ok(states.every(s => s.querySelector('.icon[aria-hidden="true"]')), 'the icon is decoration: the word says the state');
+  assert.ok(container.textContent.includes('paused'));
+  await unmount();
+});
+
+test('a row action with pick sets the pick set to the row\'s keys, at most eight, says it, and dispatches nothing', async () => {
+  const comps = [{ id: 't', component: 'DataTable', columns: taskCols, rows: '/tasks', rowActions: [{ action: 'both', label: 'Show both', pick: { from: 'pair', map: 'm' } }, { action: 'open', label: 'Open' }] }];
+  const { container, actions, unmount } = await page(comps, { tasks: TASKS });
+  const button = (task, label) => container.querySelector(`button[aria-label="${label} ${task}"]`);
+  await click(button('Survey the dock', 'Show both'));
+  assert.equal(actions.length, 0, 'a pick is no dispatch');
+  assert.equal(said(container), 'Showing 2 on the map: Ana, Ben.');
+  await click(button('Wait', 'Show both'));
+  assert.match(said(container), /^Showing 8 on the map: Ana, Ben, Cy, Dee, E, F, G, H\. At most 8 at a time, so left out: I\.$/);
+  await click(button('Check the gate', 'Show both'));
+  assert.equal(said(container), 'Check the gate names none to show; nothing is picked.');
+  await click(button('Count the pallets', 'Show both'));
+  assert.equal(said(container), 'Showing 1 on the map: Cy.', 'one key, not a list');
+  await click(button('Count the pallets', 'Open'));
+  assert.equal(actions.length, 1);
+  assert.equal(actions[0].name, 'open');
+  await unmount();
+});
+
+test('a table says while its rows have not arrived, and when the value at its path does not read as a table', async () => {
+  const loading = await page([{ id: 't', component: 'DataTable', columns: taskCols, rows: '/tasks' }], {});
+  const busy = loading.container.querySelector('[aria-busy="true"]');
+  assert.ok(busy && /Loading the rows/.test(busy.textContent));
+  await loading.unmount();
+  const broken = await page([{ id: 't', component: 'DataTable', columns: taskCols, rows: '/tasks' }], { tasks: 'not a list' });
+  assert.match(broken.container.textContent, /Unavailable: the rows at \/tasks do not read as a table/);
+  await broken.unmount();
+  const arrived = await page([{ id: 't', component: 'DataTable', columns: taskCols, rows: '/tasks', emptyText: 'No task yet.' }], { other: 1 });
+  assert.match(arrived.container.textContent, /No task yet\./, 'once the page\'s data came, a path it lacks is empty, not loading');
+  await arrived.unmount();
+});

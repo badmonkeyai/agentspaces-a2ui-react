@@ -12,7 +12,8 @@
 // stopped. A row's label shows in full up to four lines (the whole of it in the row's title and accessible name), and the
 // age sits on the meta line, so it takes none of the label's width. A row the design marks done (done.field truthy on the
 // feature) is drawn calmer, says the field's value on its meta line, and keeps only the actions done.keep names. An
-// action with pick (GEO-W-08) sets the map's pick set from a feature property in place of a dispatch.
+// action with pick (GEO-W-08) sets the map's pick set from a feature property in place of a dispatch. With sort
+// (srad/agentspaces-geo.md GEO-W-07) the rows keep a feature property's order, ties newest first.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useArrived, type ComponentProps } from '../renderer/implementation';
 import type { WatchboxProps } from '../generated/props';
@@ -62,7 +63,9 @@ export function WatchboxView({ props, ctx }: ComponentProps<WatchboxProps>) {
   const done = useMemo(() => watchboxDone(props.done), [doneKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const emptyText = typeof props.emptyText === 'string' && props.emptyText.trim() ? props.emptyText.trim() : '';
   const matching = useMemo(() => all.filter(f => kindMatches(kind, f.kind) && f.id !== props.areaFeature && (!area || inArea(f, area))), [all, kind, area, props.areaFeature]);
-  const rows = useMemo(() => watchRows(matching, max), [matching, max]);
+  // sort (srad/agentspaces-geo.md GEO-W-07): a feature property's order in place of newest first
+  const sort = typeof props.sort === 'string' && props.sort ? props.sort : undefined;
+  const rows = useMemo(() => watchRows(matching, max, sort), [matching, max, sort]);
   const frame = useGeoFrame();
   // the area on the layout's map, while the watchbox is drawn (GEO-W-04)
   const overlayKey = ctx.surfaceId + '/' + ctx.componentId;

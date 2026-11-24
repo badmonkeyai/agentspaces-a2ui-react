@@ -372,3 +372,12 @@ test('a bound path that holds no rows, or no list, draws no chips and the chat s
   assert.deepEqual(chipWords(p.container), [], 'a row with no text is no chip');
   await p.unmount();
 });
+
+test('A2UI 1.0\'s @accessibility label names the chat\'s message box, not a group around it (@a2ui/react 0.16 accessibilityRef)', async () => {
+  const { container } = await page({ conversations: [] }, [{ id: 'chat', component: 'Chat', agent: 'workbench', key: 'main', '@accessibility': { label: 'Ask the workbench about expenses' } }]);
+  const box = container.querySelector('form input:not([type=file])');
+  assert.ok(box, 'the message box is drawn');
+  assert.equal(box.getAttribute('aria-label'), 'Ask the workbench about expenses');
+  const host = container.querySelector('a2ui-react-Chat, [data-component="Chat"]');
+  assert.ok(!host || host.getAttribute('role') !== 'group' || !host.getAttribute('aria-label'), 'the host is not labelled as a group as well');
+});

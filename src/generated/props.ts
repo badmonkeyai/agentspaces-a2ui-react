@@ -19,12 +19,12 @@ export interface ChartProps {
   [extra: string]: unknown;
 }
 
-/** agentspaces-viz: A chart of a bound table by a small spec: a mark (bar, column, line, area, scatter, or table), the x column, one y column or several, a column whose values split the series, an aggregate per x, and a sort. It follows the dataviz method: one value axis, a legend for two series or more, direct labels for four or fewer, hues from the look in fixed order, a ninth series folded into Other, a hover tooltip on every mark and a crosshair on a line or an area, and a table view. A spec that names a column the table lacks says so. */
+/** agentspaces-viz: A chart of a bound table by a small spec: a mark (bar, column, line, area, scatter, table, or heatmap), the x column, one y column or several, a column whose values split the series, an aggregate per x, and a sort. It follows the dataviz method: one value axis, a legend for two series or more, direct labels for four or fewer, hues from the look in fixed order, a ninth series folded into Other, a hover tooltip on every mark and a crosshair on a line or an area, and a table view. A spec that names a column the table lacks says so. A heatmap draws a grid of x by row, one cell per pair, coloured by its value on the look's sequential ramp (one hue, light to dark) with a legend of the ramp; its categories keep the fixed orders xOrder and rowOrder, so every hour and every day shows even when empty, an empty cell drawn as an outline; facet draws small multiples side by side, at most eight; pick keeps the rows of the picked keys; a click on a cell (or Enter on it, the grid moving by its arrow keys) flies the map to the feature focus names, dispatches cellAction, and writes the cell's row to selected, a second click clearing it, the selected cell ringed; its table view lists the rows by the columns of each facet. */
 export interface VisualizeProps {
   id: string;
   component: "Visualize";
   rows: string;   // the table in the data model: a list of rows
-  mark?: "bar" | "column" | "line" | "area" | "scatter" | "table";
+  mark?: "bar" | "column" | "line" | "area" | "scatter" | "table" | "heatmap";
   x: string;   // the column along the categories (or the x axis of a scatter)
   y?: string | Array<string>;   // the column of values, or a list of columns, one series each
   color?: string;   // a column whose values split the rows into series
@@ -33,13 +33,22 @@ export interface VisualizeProps {
   title?: string;
   unit?: string;
   table?: "toggle" | "below";
+  row?: string;   // a heatmap's rows: the column whose values run down its side, as x runs across; each cell's value is y (its first column) aggregated as aggregate says, a count of the rows when there is no y
+  xOrder?: Array<string>;   // a heatmap's x categories in their order: every one is drawn, one with no row as an outline, and a row whose x is not listed is left out (the caption says how many)
+  rowOrder?: Array<string>;   // a heatmap's row categories in their order, by the same rule as xOrder
+  facet?: string;   // a heatmap's small multiples: a column whose values each draw a grid of their own, side by side, in the rows' order (the pick set's with pick), at most eight; the rest are named as left out
+  pick?: { by: string };   // a heatmap reads the map's pick set (agentspaces-geo's state picked): while a key is picked, only the rows whose column by holds a picked key are drawn, a facet of a picked key titled beside its pick hue; with nothing picked, every row
+  map?: string;   // the id of the GeoMap on this surface whose pick set pick reads and whose view focus moves; in a GeoLayout, the layout's map
+  focus?: string;   // a heatmap's column holding a map feature's id: a click on a cell flies the map to the feature its first row names, selects it and opens its card
+  cellAction?: string;   // a heatmap's action, dispatched by a click on a cell or Enter on it with {row: the cell's first row, x, y: the cell's row category, value, facet}
+  selected?: string;   // a heatmap's data model path: a click on a cell writes the cell's first row there (for a GeoMap layer's or a DataTable's filter to read), a second click on the same cell writes null; the cell whose x, row and facet the value holds wears a ring
   "@catalogId"?: string;
   "@accessibility"?: unknown;
   "@metadata"?: { extensions?: unknown };
   [extra: string]: unknown;
 }
 
-/** agentspaces-viz: A virtualised table over rows bound to the data model, with sort (each column's header a button), filter, paging, a row action or several, an empty text, and, with select, a checkbox per row that picks the row's key into a map's pick set. */
+/** agentspaces-viz: A virtualised table over rows bound to the data model, with sort (each column's header a button), filter, paging, a row action or several, an empty text, and, with select, a checkbox per row that picks the row's key into a map's pick set, a filter of its rows by a value at a data model path (rowFilter), a row action that picks a row's keys into the pick set, and a state column of A2A task states. */
 export interface DataTableProps {
   id: string;
   component: "DataTable";
@@ -50,9 +59,10 @@ export interface DataTableProps {
   pageSize?: number;
   rowAction?: string;   // the action a row's button dispatches with {row}
   rowActionLabel?: string;   // the words on each row's button; the action's name when absent. The button's accessible name adds the row's first column, so a screen reader tells the rows' buttons apart
-  rowActions?: Array<{ action: string; label: string }>;   // several row buttons, each dispatching its action with {row}, beside rowAction (which stays); each button's accessible name adds the row's first column
+  rowActions?: Array<{ action: string; label: string; pick?: { from: string; map?: string; dispatch?: boolean } }>;   // several row buttons, each dispatching its action with {row}, beside rowAction (which stays); each button's accessible name adds the row's first column; an action with pick sets the map's pick set in place of a dispatch, or beside it with pick.dispatch
   select?: { key: string; map?: string; max?: number; label?: string; clearOn?: string; focus?: string };   // a leading checkbox per row that adds the row's key to a map's pick set (the agentspaces-geo state rule, picked: in the browser's memory only) or takes it out; picks are kept by key, so they survive sort, filter, paging and scrolling; a picked row shows its pick hue; the toolbar offers Clear (n); past max the table says so in words; a key that leaves the rows leaves the set, and a change of the clearOn column's value empties it, each said in the table's polite live region; Shift with a click picks the range from the last pick, up to max
   emptyText?: string;   // what the table says while it has no row, in place of "No row yet."
+  rowFilter?: { path: string; match: string | Array<string> };   // keeps only the rows whose columns equal the value at a data model path, in the browser: an object there is compared column by column on the match columns (a row matches when each equals the object's field of the same name, as text), and a key or a list of keys is compared with the first match column (a row matches when it equals one, as text); a missing, null, blank or empty value keeps every row; the count says how many rows of the table the filter keeps
   "@catalogId"?: string;
   "@accessibility"?: unknown;
   "@metadata"?: { extensions?: unknown };
@@ -420,11 +430,11 @@ export interface FilePreviewProps {
   [extra: string]: unknown;
 }
 
-/** agentspaces-geo: A map of GeoFeature layers: points as icons or dots, lines as paths, polygons as filled shapes with an outline; points cluster below a zoom a layer sets; a click selects a feature with a ring (in a GeoLayout, its card opens as a window), a click on empty map or Escape clears it; pans and zooms with the wheel, a pinch, the + and - buttons and keys, and rotates with a modifier; keeps its view per app in the browser; a legend that hides a layer and says when a layer is capped, and a table view of the features; with draw, a control to draw a circle or a polygon, name it, and hand it to the agent. A layer with pick reads the person's pick set: it draws only the picked features (or every feature, the picked ones in their pick hue with a halo and a label chip), the legend lists the picked keys with a remove button each and Clear, and a change of the set fits the view once. */
+/** agentspaces-geo: A map of GeoFeature layers: points as icons or dots, lines as paths, polygons as filled shapes with an outline; points cluster below a zoom a layer sets; a click selects a feature with a ring (in a GeoLayout, its card opens as a window), a click on empty map or Escape clears it; pans and zooms with the wheel, a pinch, the + and - buttons and keys, and rotates with a modifier; keeps its view per app in the browser; a legend that hides a layer and says when a layer is capped, and a table view of the features; with draw, a control to draw a circle or a polygon, name it, and hand it to the agent. A layer with pick reads the person's pick set: it draws only the picked features (or every feature, the picked ones in their pick hue with a halo and a label chip), the legend lists the picked keys with a remove button each and Clear, and a change of the set fits the view once. A layer with hexes draws rows that name hexes of the pure hex grid (hx:<size>:<q>,<r>) as hexagons coloured on the look's sequential ramp, the legend showing the ramp and its range; a layer with filter keeps the rows (or features) whose columns equal a value at a data model path, so a click elsewhere on the page (a heatmap's selected cell) filters the layer at once. */
 export interface GeoMapProps {
   id: string;
   component: "GeoMap";
-  layers: Array<{ path: string; kind?: string; label?: string; style?: { color?: string; fill?: string; stroke?: string; opacity?: number; width?: number; size?: number; heading?: number; icon?: "dot" | "pin" | "truck" | "van" | "car" | "plane" | "ship" | "person" | "arrow" }; cluster?: { below?: number }; pick?: { by: string; show: "picked" | "all"; fit?: boolean } }>;   // the feature layers, drawn in order (the first at the bottom)
+  layers: Array<{ path: string; kind?: string; label?: string; style?: { color?: string; fill?: string; stroke?: string; opacity?: number; width?: number; size?: number; heading?: number; icon?: "dot" | "pin" | "truck" | "van" | "car" | "plane" | "ship" | "person" | "arrow" }; cluster?: { below?: number }; pick?: { by: string; show: "picked" | "all"; fit?: boolean }; hexes?: { id: string; value: string; size?: number; label?: string; card?: Array<{ key: string; title: string }> }; filter?: { path: string; match: string | Array<string> }; labels?: { filter?: { path: string; match: string | Array<string> }; hideWhileOpen?: Array<string> }; fitNew?: boolean }>;   // the feature layers, drawn in order (the first at the bottom)
   kinds?: string;   // a path to the app's FeatureKind entries: each kind's legend name, default style, and the fields its card shows first
   home?: { center?: Array<number>; zoom?: number };   // the view the map opens on and returns to with Home
   basemap?: string;   // a basemap the renderer knows by name (osm, osm-dark, plain, or one its host registers); empty for the look's default
@@ -433,6 +443,7 @@ export interface GeoMapProps {
   details?: boolean;   // in a GeoLayout, the map opens the selected feature's card as a window of its own
   timeSlider?: boolean;   // a slider over the features' times: the map shows the features of a window that ends where the person drags it
   legend?: boolean;
+  legendToggle?: { label?: string; hidden?: boolean };   // a button that shows or hides the legend's layer entries (each layer's swatch, name and count), so a map of many layers keeps its foot clear: in a GeoLayout it draws as the last item of the bar's menu, its label under the chart icon; elsewhere at the start of the legend. It is a toggle (pressed while the entries show) that names the entries it controls; the person's choice is kept per page in the browser and wins over hidden. The legend's Picked group, Home, Table and its notes stay either way, and an entry still hides or shows its own layer. A map with legend false draws no toggle.
   table?: boolean;   // a table view of each layer's features, the dataviz rule
   transition?: number;   // milliseconds a point takes from its previous position to its newest
   "@catalogId"?: string;
@@ -467,7 +478,7 @@ export interface FeatureSearchProps {
   [extra: string]: unknown;
 }
 
-/** agentspaces-geo: A list of the features at a path, newest first by when each was observed: the severity as a ring and a word, the label in full (up to four lines, the whole of it in the row's title and accessible name), and a meta line with the kind, the property line the design names and the age. A new arrival slides in at the top with the look's highlight, or, when the person scrolled down, a pill says how many are new. A click on a row selects its feature, and the map flies to it and opens its card. It may watch an area (a box, or a polygon feature), listing the features inside it, drawing the area on the map, and marking a feature's arrival inside as an entry. A row the design marks done (done.field) is drawn calmer and keeps only the actions done.keep names. A row action with pick, in place of a dispatch, sets the map's pick set to the keys a feature property lists. It says when nothing has come yet (emptyText, else that it waits), and when the feed stopped. */
+/** agentspaces-geo: A list of the features at a path, newest first by when each was observed: the severity as a ring and a word, the label in full (up to four lines, the whole of it in the row's title and accessible name), and a meta line with the kind, the property line the design names and the age. A new arrival slides in at the top with the look's highlight, or, when the person scrolled down, a pill says how many are new. A click on a row selects its feature, and the map flies to it and opens its card. It may watch an area (a box, or a polygon feature), listing the features inside it, drawing the area on the map, and marking a feature's arrival inside as an entry. A row the design marks done (done.field) is drawn calmer and keeps only the actions done.keep names. A row action with pick, in place of a dispatch, sets the map's pick set to the keys a feature property lists. It says when nothing has come yet (emptyText, else that it waits), and when the feed stopped. With sort, the rows keep the order of a feature property instead. */
 export interface WatchboxProps {
   id: string;
   component: "Watchbox";
@@ -484,6 +495,7 @@ export interface WatchboxProps {
   expectSeconds?: number;   // how often the feed is expected to change; past twice this the watchbox says the feed stopped
   done?: { field: string; keep?: Array<string> };   // rows that are dealt with: a row whose feature property field is truthy is drawn calmer (muted, its severity ring outlined rather than filled), shows the property's value on its meta line, and keeps only the row actions named in keep (none when keep is absent)
   emptyText?: string;   // what the watchbox says while it lists nothing, in place of "All quiet. Nothing yet. Waiting for <label>."
+  sort?: string;   // the rows' order in place of newest first: a feature property, a leading - for descending (-score lists the highest score first); numbers by value, other values as text, a feature without the property last, ties newest first
   "@catalogId"?: string;
   "@accessibility"?: unknown;
   "@metadata"?: { extensions?: unknown };

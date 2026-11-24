@@ -109,7 +109,9 @@ export function cssVariables(look: LookAndFeel | undefined, mode: 'light' | 'dar
     // the basic catalog's variables
     '--a2ui-color-background': c.surface, '--a2ui-color-on-background': c.ink, '--a2ui-color-surface': c.surface, '--a2ui-color-on-surface': c.ink,
     '--a2ui-color-primary': c.accent, '--a2ui-color-on-primary': accentInk, '--a2ui-color-primary-hover': withAlpha(c.accent, 0.85), '--a2ui-color-primary-light': withAlpha(c.accent, 0.2), '--a2ui-color-primary-dark': c.accent,
-    '--a2ui-color-secondary': c.inkMuted ?? c.ink, '--a2ui-color-on-secondary': c.surface, '--a2ui-color-secondary-hover': withAlpha(c.inkMuted ?? c.ink, 0.85), '--a2ui-color-secondary-light': withAlpha(c.inkMuted ?? c.ink, 0.2), '--a2ui-color-secondary-dark': c.inkMuted ?? c.ink,
+    // web_core's secondary is a quiet fill with ink on it (its default button's text, a slider's track; its own default is
+    // #333 on #ddd): the look's hairline under its ink, a touch darker on hover
+    '--a2ui-color-secondary': line, '--a2ui-color-on-secondary': c.ink, '--a2ui-color-secondary-hover': withAlpha(c.ink, 0.08), '--a2ui-color-secondary-light': withAlpha(c.ink, 0.06), '--a2ui-color-secondary-dark': withAlpha(c.ink, 0.3),
     '--a2ui-color-border': line, '--a2ui-color-input': c.field ?? c.surface, '--a2ui-color-on-input': c.ink,
     '--a2ui-font-family-title': sans, '--a2ui-font-family-monospace': mono,
     '--a2ui-font-size': `${scale[2]}px`, '--a2ui-font-size-xs': `${scale[0]}px`, '--a2ui-font-size-s': `${scale[1]}px`, '--a2ui-font-size-m': `${scale[2]}px`, '--a2ui-font-size-l': `${scale[3]}px`, '--a2ui-font-size-xl': `${scale[4] ?? scale[3]}px`, '--a2ui-font-size-2xl': `${(scale[4] ?? scale[3]) * 1.3}px`,

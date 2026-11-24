@@ -179,6 +179,55 @@ test('the legend and the layer menu hide the same layer, and a capped layer says
   await p.unmount();
 });
 
+test('a legend toggle hides and shows the layer entries as a whole, keeps the choice per page, and leaves each entry its own toggle (GEO-M-14)', async () => {
+  localStorage.clear();
+  const toggled = { ...map, legendToggle: { label: 'Stats', hidden: true } };
+  const p = await page([toggled], data);
+  const el = p.container.querySelector('[data-component="GeoMap"]');
+  const button = () => el.querySelector('.legend button.as-legend-toggle');
+  const entries = () => el.querySelector('.legend .as-legend-entries');
+  assert.ok(button(), 'outside a GeoLayout the toggle is the legend\'s own');
+  assert.equal(el.querySelector('.legend').firstElementChild, button(), 'and its first item');
+  assert.equal(button().textContent, 'Stats', 'in the design\'s words');
+  assert.equal(button().getAttribute('aria-pressed'), 'false', 'the design starts the entries hidden');
+  assert.equal(button().getAttribute('aria-controls'), entries().id, 'it names the entries it controls');
+  assert.equal(entries().hidden, true);
+  assert.equal(entries().querySelectorAll('.entry').length, 2, 'the entries stay mounted, hidden as a whole');
+  assert.ok(el.querySelector('.table-view').textContent.includes('MV Northgate'), 'the features are still drawn and listed');
+  await click(button());
+  assert.equal(button().getAttribute('aria-pressed'), 'true');
+  assert.equal(entries().hidden, false, 'shown');
+  assert.equal(localStorage.getItem(ui.legendKey('harbour', 'harbour')), 'shown', 'the choice is kept per page');
+  // an entry's own toggle is unchanged: it hides its layer, and the hidden layer is counted on the toggle while the
+  // entries are out of sight
+  await click(entries().querySelector('.entry'));
+  assert.ok(!el.querySelector('.table-view').textContent.includes('Berth 4'), 'the entry hid its layer');
+  await click(button());
+  assert.equal(entries().hidden, true);
+  assert.equal(button().textContent, 'Stats · 1 off', 'a layer turned off is said on the toggle');
+  assert.match(button().title, /Show the map's layers and their counts \(1 layer turned off\)/);
+  assert.ok(!el.querySelector('.table-view').textContent.includes('Berth 4'), 'hiding the entries changes no layer');
+  await p.unmount();
+  // the kept choice wins over the design's hidden on the next visit
+  const again = await page([{ ...toggled, legendToggle: { label: 'Stats', hidden: false } }], data);
+  const el2 = again.container.querySelector('[data-component="GeoMap"]');
+  assert.equal(el2.querySelector('.legend .as-legend-entries').hidden, true, 'the person hid them last');
+  assert.equal(el2.querySelector('.legend .as-legend-toggle').getAttribute('aria-pressed'), 'false');
+  await again.unmount();
+  localStorage.clear();
+  // no toggle: the entries always show; legend false: no toggle at all; no label: the default words
+  const plain = await page([map], data);
+  assert.equal(plain.container.querySelector('.as-legend-toggle'), null);
+  assert.equal(plain.container.querySelector('.legend .as-legend-entries').hidden, false);
+  await plain.unmount();
+  const none = await page([{ ...map, legend: false, legendToggle: { label: 'Stats' } }], data);
+  assert.equal(none.container.querySelector('.as-legend-toggle'), null, 'a map with no legend draws no toggle');
+  await none.unmount();
+  assert.deepEqual(ui.legendToggleOf({ legendToggle: {} }), { label: 'Layers', hidden: false });
+  assert.deepEqual(ui.legendToggleOf({ legendToggle: { label: ' A very long label for the toggle here ', hidden: true } }), { label: 'A very long label for th', hidden: true }, 'cut to 24 characters');
+  assert.equal(ui.legendToggleOf({ legendToggle: 'Stats' }), undefined, 'not an object');
+});
+
 test('the search finds as a person types, ignoring accents, and Enter picks the first', async () => {
   const p = await page([{ id: 'find', component: 'FeatureSearch', map: 'harbour', fields: ['mmsi'] }, map], data);
   const input = p.container.querySelector('.as-feature-search input');

@@ -19,7 +19,7 @@ export const Stat = define<StatProps>('Stat', ({ props, ctx }) => {
   const s = status === undefined ? '' : String(status);
   const d = typeof delta === 'number' ? delta : delta === undefined ? undefined : Number(delta);
   return (
-    <div className="bma-stat" data-component="Stat">
+    <div className="bma-stat" data-component="Stat" aria-live="polite" aria-atomic="true">
       <span className="bma-muted bma-small">{String(props.label ?? '')}</span>
       <span className="value">{fmt(value)}{props.unit ? <span className="unit">{String(props.unit)}</span> : null}</span>
       {d !== undefined && Number.isFinite(d) ? <span className="delta" aria-label="change">{d > 0 ? '▲ +' : d < 0 ? '▼ ' : '• '}{fmt(d)}</span> : null}

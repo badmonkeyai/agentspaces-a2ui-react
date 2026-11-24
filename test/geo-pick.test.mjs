@@ -135,6 +135,82 @@ test('on one surface: the table picks, the map draws the picked alone, the legen
   await p.unmount();
 });
 
+test('the map fits a change of the pick set the person makes, never a prune the data makes, and no fit undoes a fly the person asked for', async () => {
+  const p = await page([{ id: 'find', component: 'FeatureSearch', map: 'watch' }, TABLE, MAP], { ...DATA, people });
+  const box = who => p.container.querySelector(`input[aria-label="Show ${who} on the map"]`);
+  const fits = () => geo(p.container).dataset.pickFits;
+  const realNow = Date.now;
+  let skew = 0;
+  Date.now = () => realNow() + skew;
+  try {
+    await click(box('Walker 12'));
+    await click(box('Walker 13'));
+    assert.equal(fits(), '2', 'a person\'s pick fits once each');
+    // the rows change under the person (replayed data, another scope's devices): Walker 13 leaves the table and the set,
+    // and the map stays where it is
+    await p.push('/people', people.filter(r => r.who !== 'Walker 13'));
+    assert.equal(geo(p.container).dataset.picked, '1', 'the key that left the rows left the set');
+    assert.equal(said(p.container), 'Walker 13 is no longer in the table, so no longer shown.');
+    assert.equal(fits(), '2', 'a prune the data made does not fit');
+    // the remove button is the person's: it fits, once
+    await click(box('Walker K'));
+    assert.equal(fits(), '3');
+    await click(p.container.querySelector('.as-picked [aria-label="Stop showing Walker K"]'));
+    assert.equal(fits(), '4', 'the legend\'s remove is the person\'s change, fitted once');
+    // a fly the person asks for (the search's pick of an alert): neither a prune nor a pick within the guard moves the map
+    const input = p.container.querySelector('.as-feature-search input');
+    await React.act(async () => { Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set.call(input, 'a1'); input.dispatchEvent(new Event('input', { bubbles: true })); });
+    await key(input, 'Enter');
+    await p.push('/people', people);
+    await click(box('Walker B'));
+    await p.push('/people', people.filter(r => r.who !== 'Walker B'));
+    assert.equal(geo(p.container).dataset.picked, '1', 'the pick, then its prune, happened');
+    assert.equal(fits(), '4', 'no fit within the guard of the fly');
+    // past the guard the person's pick fits again
+    skew = 4000;
+    await click(box('Walker K'));
+    assert.equal(fits(), '5', 'past the guard a person\'s pick fits');
+  } finally {
+    Date.now = realNow;
+    await p.unmount();
+  }
+});
+
+test('in a GeoLayout a row action\'s pick keeps to the listed keys, and with dispatch picks every key and asks for the rest (kismet-life-patterns §10.12)', async () => {
+  localStorage.clear();
+  const meetups = [{ place: 'The hotel', members: ['Walker 12', 'Walker Z'] }];
+  const actions = [];
+  const surface = (id, components, value) => [{ version: '1.0', createSurface: { surfaceId: id, catalogId: 'agentspaces-geo' } },
+    { version: '1.0', updateComponents: { surfaceId: id, components: [{ id: 'root', component: 'Column', children: components.map(c => c.id) }, ...components] } },
+    { version: '1.0', updateDataModel: { surfaceId: id, path: '/', value } }];
+  const meet = { id: 'meet', component: 'DataTable', columns: [{ key: 'place', title: 'Place' }], rows: '/meetups',
+    rowActions: [{ action: 'show-who', label: 'Show who', pick: { from: 'members' } }, { action: 'pattern-both', label: 'Show both', pick: { from: 'members', dispatch: true } }] };
+  let list = surface('list', [TABLE], { people });
+  let setList;
+  function Pages() {
+    const [l, setL] = React.useState(list);
+    setList = setL;
+    const surfaces = { map: surface('map', [MAP], DATA), list: l, meet: surface('meet', [meet], { meetups }) };
+    const render = id => React.createElement(ui.Surfaces, { envelopes: surfaces[id], onAction: a => actions.push(a) });
+    return React.createElement(ui.Pages, { surfaces: ['map', 'list', 'meet'], render, title: 'Walks', persist: 'walks-2',
+      layout: { kind: 'geo', map: 'map', windows: [{ page: 'list', label: 'People', icon: 'list', open: true }, { page: 'meet', label: 'Meetups', icon: 'list', open: true }] } });
+  }
+  const { container, unmount } = await mount(React.createElement(Pages));
+  const button = label => container.querySelector(`button[aria-label="${label} The hotel"]`);
+  await click(button('Show who'));
+  assert.equal(geo(container).dataset.picked, '1', 'a pick alone keeps to the keys a table lists');
+  assert.equal(actions.length, 0, 'and dispatches nothing');
+  await click(button('Show both'));
+  assert.equal(geo(container).dataset.picked, '2', 'with dispatch every key is picked, the one no table lists yet too');
+  assert.deepEqual(actions.map(a => [a.name, a.context.row.place]), [['pattern-both', 'The hotel']], 'and the action is dispatched with {row}');
+  assert.match(container.textContent, /Asked for Walker Z; each shows when its rows arrive\./);
+  // the dispatch's answer arrives: the key now listed is picked in the table, not dropped
+  await React.act(async () => { setList(l => [...l, { version: '1.0', updateDataModel: { surfaceId: 'list', path: '/people', value: [...people, { who: 'Walker Z', places: 1 }] } }]); });
+  assert.equal(geo(container).dataset.picked, '2');
+  assert.deepEqual([...container.querySelectorAll('tbody tr[data-picked]')].map(r => r.querySelectorAll('td')[1].textContent).sort(), ['Walker 12', 'Walker Z']);
+  await unmount();
+});
+
 test('a search for a feature a show-picked layer hides adds its key; past eight it says so', async () => {
   const many = Array.from({ length: 9 }, (_, i) => line('w' + i, 'track.route', 'Walker ' + i, -3 + i / 10));
   const p = await page([{ id: 'find', component: 'FeatureSearch', map: 'watch' }, { ...MAP, layers: [SPECS[0]] }], { routes: many });

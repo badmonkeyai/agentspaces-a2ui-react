@@ -5,8 +5,10 @@
 // opens wide enough for it and tall enough for its rows, and a free window kept at a place off this screen is drawn
 // inside it. The map's details window is no taller than its content, the layer chips keep clear of every docked window,
 // the draw control's name form opens below its button and over none of the time strip, and a watchbox row's fly-to
-// lands its pin in the part of the map the docked windows leave visible. Without Chrome the test says so and is skipped,
-// as the gallery's accessibility check is.
+// lands its pin in the part of the map the docked windows leave visible. The map stays where the person sent it: a fly
+// from one city to another ends within the cap (a jump, never a seconds-long sweep over the region between), and
+// neither a prune of the pick set the data makes, a change of the map's own data, nor a pick within the fly's guard
+// moves it back; a person's pick past the guard fits once. Without Chrome the test says so and is skipped, as the gallery's accessibility check is.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
@@ -21,10 +23,12 @@ const CHROME = process.env.CHROME || '/Applications/Google Chrome.app/Contents/M
 const skip = existsSync(CHROME) ? false : 'no Chrome at ' + CHROME;
 const root = fileURLToPath(new URL('..', import.meta.url));
 
-/** Builds the fixture page, serves it, and opens it in headless Chrome; returns evaluate, open and close. */
-async function browser() {
+const FIT_READY = `document.querySelectorAll('.as-geo-window:not([hidden])').length >= 6 && !!document.querySelector('.as-geomap')`;
+
+/** Builds a fixture page, serves it, and opens it in headless Chrome; returns evaluate, open and close. */
+async function browser(fixture = 'geo-fit.jsx', ready = FIT_READY) {
   const dir = mkdtempSync(join(tmpdir(), 'as-geo-fit-'));
-  await build({ entryPoints: [join(root, 'test/fixtures/geo-fit.jsx')], outfile: join(dir, 'page.js'), bundle: true, format: 'esm', platform: 'browser', target: 'es2022',
+  await build({ entryPoints: [join(root, 'test/fixtures', fixture)], outfile: join(dir, 'page.js'), bundle: true, format: 'esm', platform: 'browser', target: 'es2022',
     jsx: 'automatic', define: { 'process.env.NODE_ENV': '"production"' }, logLevel: 'error', nodePaths: [join(root, 'node_modules')] });
   writeFileSync(join(dir, 'index.html'), '<!doctype html><html lang="en"><head><meta charset="utf-8"><link rel="stylesheet" href="style.css">'
     + '<style>body{margin:0}.bma-page{min-height:100vh}</style></head><body><div id="root"></div><script type="module" src="page.js"></script></body></html>');
@@ -62,7 +66,7 @@ async function browser() {
   const open = async (query, width, height) => {
     await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false });
     await send('Page.navigate', { url: `http://127.0.0.1:${server.address().port}/index.html${query}` });
-    for (let i = 0; i < 100; i++) { if (await ev(`document.querySelectorAll('.as-geo-window:not([hidden])').length >= 6 && !!document.querySelector('.as-geomap')`).catch(() => false)) break; await new Promise(r => setTimeout(r, 100)); }
+    for (let i = 0; i < 100; i++) { if (await ev(ready).catch(() => false)) break; await new Promise(r => setTimeout(r, 100)); }
     // the windows measure their tables and the stage its size a frame or two after the first draw
     await new Promise(r => setTimeout(r, 700));
   };
@@ -71,7 +75,7 @@ async function browser() {
     await new Promise(r => { if (chrome.exitCode !== null) r(); else { chrome.once('exit', r); chrome.kill(); } });
     rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
   };
-  return { ev, open, close, thrown };
+  return { ev, open, close, thrown, send };
 }
 
 /** What the page shows: the page's scroll, the layout's, bar's, stage's and map's boxes, and each open window's. */
@@ -221,6 +225,61 @@ test('the GeoLayout fills the viewport exactly, and its windows fit the stage, s
   }
 });
 
+/** The legend toggle and the map's foot: the toggle in the bar's menu, the legend's box, and the layer chips a person sees. */
+const FOOT = `(() => {
+  const box = el => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height, right: r.right, bottom: r.bottom }; };
+  const items = [...document.querySelectorAll('.as-geo-menu-item')];
+  const stats = items.find(x => x.textContent.startsWith('Stats'));
+  const legend = document.querySelector('.as-geomap .legend');
+  return {
+    stats: stats ? { ...box(stats), pressed: stats.getAttribute('aria-pressed'), inMenu: !!stats.closest('.as-geo-bar .as-geo-menu'), last: stats === items[items.length - 1],
+      controls: document.getElementById(stats.getAttribute('aria-controls'))?.className ?? null } : null,
+    legend: legend && legend.getClientRects().length ? box(legend) : null,
+    chips: [...document.querySelectorAll('.as-geomap .legend .entry')].filter(e => e.getClientRects().length).map(box),
+    bar: box(document.querySelector('.as-geo-bar')), stage: box(document.querySelector('.as-geo-stage')),
+    mapState: document.querySelector('.as-geomap').dataset.state,
+    dockBottom: parseFloat(document.querySelector('.as-geo-stage').style.getPropertyValue('--as-dock-bottom')) || 0,
+  };
+})()`;
+
+test('a map\'s legend toggle sits in the bar\'s menu and hides the layer chips, which frees the map\'s foot, and shows them again (GEO-M-14)', { skip, timeout: 120_000 }, async () => {
+  const b = await browser();
+  try {
+    await b.open('?stats=1', 1600, 1000);
+    const hid = await b.ev(FOOT);
+    fits(await b.ev(MEASURE), 'the chips hidden');
+    assert.ok(hid.stats, 'the toggle is drawn');
+    assert.ok(hid.stats.inMenu && hid.stats.last, `the last item of the bar's menu: ${JSON.stringify(hid.stats)}`);
+    assert.ok(hid.stats.right <= hid.bar.right && hid.stats.bottom <= hid.bar.bottom, 'inside the bar');
+    assert.equal(hid.stats.pressed, 'false', 'the design starts the chips hidden');
+    assert.equal(hid.stats.controls, 'as-legend-entries', 'it names the chips it controls');
+    assert.deepEqual(hid.chips, [], 'no layer chip is seen');
+    // what stays of the legend is at most its Table and Home buttons, nothing like the row of chips
+    if (hid.legend) assert.ok(hid.legend.w <= 140, `the foot is free of the chips: ${JSON.stringify(hid.legend)}`);
+    await b.ev(`(document.querySelector('.as-geo-menu-item.as-legend-toggle').click(), true)`);
+    await new Promise(r => setTimeout(r, 300));
+    const shown = await b.ev(FOOT);
+    fits(await b.ev(MEASURE), 'the chips shown');
+    assert.equal(shown.stats.pressed, 'true');
+    assert.equal(shown.chips.length, 2, 'both layers\' chips');
+    assert.equal(shown.bar.h, hid.bar.h, 'the bar keeps its height either way');
+    for (const c of shown.chips) {
+      // the foot the docked windows leave the map: above a window docked at the bottom
+      const foot = shown.stage.bottom - shown.dockBottom;
+      assert.ok(c.bottom <= foot && (shown.mapState !== 'map' || c.bottom >= foot - 60), `${shown.mapState === 'map' ? 'at the map\'s foot' : 'on the map'} (${foot}): ${JSON.stringify(c)}`);
+    }
+    if (hid.legend) assert.ok(shown.legend.w > hid.legend.w + 60, `the chips widen the legend: ${hid.legend.w} to ${shown.legend.w}`);
+    await b.ev(`(document.querySelector('.as-geo-menu-item.as-legend-toggle').click(), true)`);
+    await new Promise(r => setTimeout(r, 300));
+    const again = await b.ev(FOOT);
+    assert.deepEqual([again.stats.pressed, again.chips.length], ['false', 0], 'hidden again');
+    fits(await b.ev(MEASURE), 'the chips hidden again');
+    assert.deepEqual(b.thrown, [], 'the page threw nothing');
+  } finally {
+    await b.close();
+  }
+});
+
 test('the window chips sit in a row of their own below the kicker, labels under icons, clear of the map and its top controls', { skip, timeout: 120_000 }, async () => {
   const b = await browser();
   try {
@@ -252,6 +311,150 @@ test('the window chips sit in a row of their own below the kicker, labels under 
     await b.open('', 880, 700);
     const n = await b.ev(`(() => { const r = s => document.querySelector(s).getBoundingClientRect(); return { kicker: r('.as-kicker').bottom, menu: r('.as-geo-menu').top, bar: r('.as-geo-bar').bottom, stage: r('.as-geo-stage').top }; })()`);
     assert.ok(n.menu >= n.kicker && n.bar <= n.stage + 0.5, `880 by 700: ${JSON.stringify(n)}`);
+    assert.deepEqual(b.thrown, [], 'the page threw nothing');
+  } finally {
+    await b.close();
+  }
+});
+
+test('a fly to a far alert ends within the cap, and neither a prune the data makes nor a pick within the guard moves the map back', { skip, timeout: 120_000 }, async t => {
+  const b = await browser('geo-jump.jsx', `!!document.querySelector('.as-geomap[data-state="map"], .as-geomap[data-state="fallback"]') && !!document.querySelector('[data-feature="al1"] .as-watchbox-pick')`);
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  try {
+    await b.open('', 1600, 1000);
+    if ((await b.ev(`document.querySelector('.as-geomap').dataset.state`)) !== 'map') return;   // no WebGL here: the happy-dom test covers the fits
+    const VIEW = `(() => { const k = Object.keys(localStorage).find(k => k.startsWith('agentspaces-geo:view:') && k.endsWith(':watch')); return k ? JSON.parse(localStorage.getItem(k)) : null; })()`;
+    const near = (v, [lon, lat], d) => Boolean(v) && Math.abs(v.center[0] - lon) < d && Math.abs(v.center[1] - lat) < d;
+    const settled = async (where, label) => {
+      let v = null, last = '';
+      for (let i = 0; i < 60; i++) { await sleep(100); v = await b.ev(VIEW); const k = JSON.stringify(v); if (near(v, where, 0.5) && k === last) return v; last = k; }
+      assert.fail(`${label}: the map settled near ${where}: ${last}`);
+    };
+    const tick = who => b.ev(`(document.querySelector('input[aria-label="Show ${who} on the map"]').click(), true)`);
+    const CITY = [-122.42, 37.77], FAR = [-104.99, 39.74];
+    // the person picks two routes: the map fits them, in the first city
+    await tick('A');
+    await tick('B');
+    const city = await settled(CITY, 'the picks fitted');
+    assert.ok(city.zoom >= 11, `fitted close in: ${JSON.stringify(city)}`);
+    // the person clicks the far alert's row: the map is there, settled, within the cap (a jump, not a five-second sweep)
+    const tFly = Date.now();
+    const took = await b.ev(`(async () => {
+      const t0 = performance.now();
+      document.querySelector('[data-feature="al1"] .as-watchbox-pick').click();
+      for (;;) {
+        await new Promise(r => setTimeout(r, 20));
+        const v = ${VIEW};
+        if (v && Math.abs(v.center[0] - ${FAR[0]}) < 0.5 && Math.abs(v.center[1] - ${FAR[1]}) < 0.5) return performance.now() - t0;
+        if (performance.now() - t0 > 8000) return -1;
+      }
+    })()`);
+    // a measurement: the cap is FLY_MAX_MS (1500 ms), a far flight past it jumps (typically under 100 ms here); out of
+    // bounds past the cap and a 250 ms allowance for the polling and a loaded machine
+    t.diagnostic(`the fly to the far alert settled in ${Math.round(took)} ms (cap 1500 ms, limit 1750 ms)`);
+    assert.ok(took >= 0 && took <= 1500 + 250, `the flight to the far alert ended within the cap: ${Math.round(took)} ms`);
+    // the details window the click opens re-aims the map within REAIM_MS; then the view is the alert's
+    await sleep(600);
+    const there = await b.ev(VIEW);
+    assert.ok(near(there, FAR, 0.05), `at the alert: ${JSON.stringify(there)}`);
+    const fits = () => b.ev(`Number(document.querySelector('.as-geomap').dataset.pickFits)`);
+    const fitsAtFly = await fits();
+    // a pick inside the fly's guard (FLY_GUARD_MS, 3 s) does not undo the fly; a machine so loaded that the pick comes
+    // after the guard says so and leaves this one check out
+    const atTick = Date.now() - tFly;
+    await tick('C');
+    await sleep(600);
+    assert.equal(await b.ev(`document.querySelector('.as-geomap').dataset.picked`), '3', 'C joined the set');
+    if (atTick < 2800) {
+      assert.equal(await fits(), fitsAtFly, 'no fit within the guard');
+      assert.ok(near(await b.ev(VIEW), there.center, 0.05), 'a pick within the guard did not move the map');
+    } else t.diagnostic(`the pick came ${atTick} ms after the fly, past the guard: its check is left out`);
+    const fitsAtPrune = await fits(), atPrune = await b.ev(VIEW);
+    // the data takes a picked key out of the table's rows: the set prunes, and the map stays where it is
+    await b.ev(`(window.__push('list', '/people', [{ who: 'A' }, { who: 'C' }]), true)`);
+    await sleep(600);
+    assert.equal(await b.ev(`document.querySelector('.as-geomap').dataset.picked`), '2', 'B left the set with the rows');
+    assert.equal(await fits(), fitsAtPrune, 'a prune the data made does not fit');
+    assert.ok(near(await b.ev(VIEW), atPrune.center, 0.05), 'a prune the data made did not move the map');
+    // and past the guard a prune still moves nothing
+    await sleep(Math.max(0, 3100 - (Date.now() - tFly)));
+    await b.ev(`(window.__push('list', '/people', [{ who: 'A' }]), true)`);
+    await sleep(600);
+    assert.equal(await fits(), fitsAtPrune, 'a prune past the guard does not fit either');
+    assert.ok(near(await b.ev(VIEW), atPrune.center, 0.05), 'a prune past the guard did not move the map');
+    // the map's own layers change under the person (a replay's slice adds a route in the first city): the map stays too
+    const R = (who, lon, lat) => ({ type: 'Feature', id: 'r-' + who, kind: 'track.route', label: who, geometry: { type: 'LineString', coordinates: [[lon, lat], [lon + 0.02, lat + 0.015]] },
+      properties: { who }, style: {}, at: '2026-11-19T17:15:00Z', schemaVersion: 1 });
+    const grown = [R('A', -122.43, 37.76), R('B', -122.41, 37.78), R('C', -122.45, 37.74), R('D', -122.40, 37.79)];
+    await b.ev(`(window.__push('map', '/routes', ${JSON.stringify(grown)}), true)`);
+    await sleep(600);
+    assert.equal(await fits(), fitsAtPrune, 'a change of the map\'s own data does not fit');
+    assert.ok(near(await b.ev(VIEW), atPrune.center, 0.05), 'a change of the map\'s own data did not move the map');
+    // the person's pick fits once, back to the routes
+    await b.ev(`(window.__push('list', '/people', [{ who: 'A' }, { who: 'B' }, { who: 'C' }]), true)`);
+    await sleep(200);
+    await tick('B');
+    await settled(CITY, 'the pick past the guard fitted');
+    assert.equal(await fits(), fitsAtPrune + 1, 'one fit for the one pick');
+    assert.deepEqual(b.thrown, [], 'the page threw nothing');
+  } finally {
+    await b.close();
+  }
+});
+
+test('a heatmap cell\'s click flies the map to its place within the cap (GEO-D-08, the cell\'s focus column)', { skip, timeout: 120_000 }, async t => {
+  const b = await browser('geo-cell.jsx', `!!document.querySelector('.as-geomap[data-state="map"], .as-geomap[data-state="fallback"]') && !!document.querySelector('td[data-cell="0:1:0"]')`);
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  try {
+    await b.open('', 1600, 1000);
+    if ((await b.ev(`document.querySelector('.as-geomap').dataset.state`)) !== 'map') return;   // no WebGL here: the happy-dom test covers the focus
+    const VIEW = `(() => { const k = Object.keys(localStorage).find(k => k.startsWith('agentspaces-geo:view:') && k.endsWith(':watch')); return k ? JSON.parse(localStorage.getItem(k)) : null; })()`;
+    const FAR = [-104.99, 39.74];
+    // the map first fits the routes, in the first city
+    for (let i = 0; i < 40; i++) { const v = await b.ev(VIEW); if (v && Math.abs(v.center[0] + 122.42) < 0.5) break; await sleep(100); }
+    const took = await b.ev(`(async () => {
+      const t0 = performance.now();
+      document.querySelector('td[data-cell="0:1:0"]').click();
+      for (;;) {
+        await new Promise(r => setTimeout(r, 20));
+        const v = ${VIEW};
+        if (v && Math.abs(v.center[0] - ${FAR[0]}) < 0.5 && Math.abs(v.center[1] - ${FAR[1]}) < 0.5) return performance.now() - t0;
+        if (performance.now() - t0 > 8000) return -1;
+      }
+    })()`);
+    // a measurement against the cap of KW2 §10.8: FLY_MAX_MS (1500 ms), a far flight past it a jump; out of bounds past the
+    // cap and a 250 ms allowance for the polling and a loaded machine
+    t.diagnostic(`the cell's fly settled in ${Math.round(took)} ms (cap 1500 ms, limit 1750 ms)`);
+    assert.ok(took >= 0 && took <= 1500 + 250, `the cell's fly ended within the cap: ${Math.round(took)} ms`);
+    assert.equal(await b.ev(`document.querySelector('.as-geomap').dataset.selected`), 'pl-far', 'the place is selected');
+    assert.deepEqual(b.thrown, [], 'the page threw nothing');
+  } finally {
+    await b.close();
+  }
+});
+
+test('a real click on a hexagon three hex layers draw selects it and dispatches the top layer\'s kind, hex and row (GEO-M-11, kismet-life-patterns §10.12)', { skip, timeout: 120_000 }, async t => {
+  const b = await browser('geo-hex.jsx', `!!document.querySelector('.as-geomap[data-state="map"], .as-geomap[data-state="fallback"]')`);
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  try {
+    await b.open('', 1200, 800);
+    if ((await b.ev(`document.querySelector('.as-geomap').dataset.state`)) !== 'map') return;   // no WebGL here: geo.test.mjs covers the select's context
+    await sleep(1200);   // the first frames draw the hexagons
+    const [x, y] = await b.ev(`(() => { const r = document.querySelector('.as-geomap .canvas').getBoundingClientRect(); return [Math.round(r.x + r.width / 2), Math.round(r.y + r.height / 2)]; })()`);
+    const mouse = (type, buttons) => b.send('Input.dispatchMouseEvent', { type, x, y, button: 'left', buttons, clickCount: type === 'mouseMoved' ? 0 : 1 });
+    await mouse('mouseMoved', 0);
+    await mouse('mousePressed', 1);
+    await mouse('mouseReleased', 0);
+    let action = null;
+    for (let i = 0; i < 40 && !action; i++) { action = await b.ev(`window.__actions.find(a => a.name === 'hex.select') || null`); if (!action) await sleep(100); }
+    const hex = await b.ev('window.__hex');
+    assert.ok(action, 'the click on the hexagon dispatched the select action');
+    t.diagnostic(`the click at ${x}, ${y} dispatched ${JSON.stringify({ kind: action.context.kind, hex: action.context.hex })}`);
+    assert.equal(action.context.id, hex);
+    assert.equal(action.context.hex, hex);
+    assert.equal(action.context.kind, 'meetup', 'the top layer\'s hexagon takes the click');
+    assert.deepEqual([action.context.row.d, action.context.row.h], [3, 21], 'with the row it draws');
+    assert.equal(await b.ev(`document.querySelector('.as-geomap').dataset.selected`), hex, 'the hexagon is selected');
     assert.deepEqual(b.thrown, [], 'the page threw nothing');
   } finally {
     await b.close();

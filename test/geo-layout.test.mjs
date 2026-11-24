@@ -172,6 +172,52 @@ test('in a GeoLayout the map\'s search draws in the bar, and a selection opens i
   await unmount();
 });
 
+test('in a GeoLayout a map\'s legend toggle is the last item of the bar\'s menu, and shows or hides the map\'s layer entries (GEO-M-14)', async () => {
+  localStorage.clear();
+  const ship = { type: 'Feature', id: 'ship217', kind: 'track.ship.cargo', label: 'MV Northgate', geometry: { type: 'Point', coordinates: [-3.0123, 53.4087] }, properties: {}, style: {}, at: '2026-11-12T09:14:03Z' };
+  const envelopes = toggle => [
+    { version: '1.0', createSurface: { surfaceId: 'watch', catalogId: 'agentspaces-geo' } },
+    { version: '1.0', updateComponents: { surfaceId: 'watch', components: [{ id: 'root', component: 'Column', children: ['harbour'] },
+      { id: 'harbour', component: 'GeoMap', layers: [{ path: '/ships', label: 'Ships' }, { path: '/tugs', label: 'Tugs' }], ...(toggle ? { legendToggle: toggle } : {}) }] } },
+    { version: '1.0', updateDataModel: { surfaceId: 'watch', path: '/', value: { ships: [ship], tugs: [] } } },
+  ];
+  const draw = async (toggle, windows = [{ page: 'ask', label: 'Ask', open: true }]) => {
+    const surface = id => (id === 'watch' ? React.createElement(ui.Surfaces, { envelopes: envelopes(toggle) }) : render(id));
+    return mount(React.createElement(ui.Pages, { surfaces: ['watch', 'ask'], render: surface, layout: { kind: 'geo', map: 'watch', windows }, title: 'Harbour', persist: 'harbour-legend' }));
+  };
+  const first = await draw({ label: 'Stats', hidden: true });
+  const c = first.container;
+  const items = [...c.querySelectorAll('.as-geo-bar .as-geo-menu .as-geo-menu-item')];
+  assert.deepEqual(items.map(b => b.textContent), ['Ask', 'Stats'], 'the toggle is the menu\'s last item');
+  const stats = items[1];
+  assert.ok(stats.querySelector('svg.as-icon') && stats.lastElementChild.classList.contains('as-geo-menu-label'), 'its label under its icon, as a window\'s chip');
+  assert.equal(c.querySelector('.as-geo-map .as-legend-toggle'), null, 'and not on the map');
+  assert.equal(stats.getAttribute('aria-pressed'), 'false');
+  const entries = c.querySelector('.as-geomap .legend .as-legend-entries');
+  assert.equal(stats.getAttribute('aria-controls'), entries.id);
+  assert.equal(entries.hidden, true, 'hidden as the design asks');
+  assert.ok(!stats.classList.contains('open'));
+  await click(stats);
+  assert.equal(entries.hidden, false);
+  assert.equal(stats.getAttribute('aria-pressed'), 'true');
+  assert.ok(stats.classList.contains('open'), 'drawn as an open chip while the entries show');
+  // keyboard: a native button, so Enter and Space click it; F6 reaches the bar it sits in
+  stats.focus();
+  assert.equal(document.activeElement, stats, 'it takes the focus');
+  await click(stats);
+  assert.equal(entries.hidden, true);
+  await first.unmount();
+  // the kept choice comes back on the next visit; the menu row is drawn for the toggle alone, with no window
+  const second = await draw({ label: 'Stats' }, []);
+  assert.deepEqual([...second.container.querySelectorAll('.as-geo-menu-item')].map(b => [b.textContent, b.getAttribute('aria-pressed')]), [['Stats', 'false']], 'hidden, as the person left it');
+  await second.unmount();
+  localStorage.clear();
+  const third = await draw(undefined);
+  assert.deepEqual([...third.container.querySelectorAll('.as-geo-menu-item')].map(b => b.textContent), ['Ask'], 'no toggle without the design asking');
+  assert.equal(third.container.querySelector('.as-geomap .legend .as-legend-entries').hidden, false);
+  await third.unmount();
+});
+
 test('the details window keeps its own place when another window moves, and raises in one order with the others', async () => {
   localStorage.clear();
   // a layout window raised many times over the days: its z is far past the details window's first one

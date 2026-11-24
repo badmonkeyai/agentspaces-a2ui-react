@@ -273,7 +273,7 @@ export function ChatView({ o, ctx }: { o: ChatOptions; ctx: Ctx }) {
           <label className="bma-btn as-chat-attach">Attach<input type="file" multiple className="as-visually-hidden" aria-label="Attach a file" onChange={e => { if (e.target.files?.length) void upload(e.target.files); e.target.value = ''; }} /></label>
         ) : null}
         <input value={text} onChange={e => { setText(e.target.value); if (e.target.value) drafts.set(id, e.target.value); else drafts.delete(id); }}
-          placeholder={String(o.placeholder || (agent ? `Ask ${agent}` : 'Type a message; an agent that takes it answers'))} aria-label="message" />
+          placeholder={String(o.placeholder || (agent ? `Ask ${agent}` : 'Type a message; an agent that takes it answers'))} aria-label="message" ref={ctx.accessibilityRef} />
         <button type="submit" className="bma-btn primary">Send</button>
       </form>
     </div>

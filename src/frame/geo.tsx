@@ -23,7 +23,8 @@
 // stage), unless the person resized it. The details window the map opens docks at the foot of the right column, no
 // taller than its content, so it never covers a right window's content and leaves the others the rest of the column.
 // The frame tells the map how far the docked windows reach in (insets), so a fly-to or a fit lands its subject in the
-// part of the map the windows leave visible.
+// part of the map the windows leave visible. A map's legend toggle (srad/agentspaces-geo.md GEO-M-14) draws as the last
+// item of the bar's menu, through the frame's menu slot, so the menu row is drawn when a map fills that slot too.
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { useBarClaim } from './frame';
 import { Icon, ICONS } from './icons';
@@ -34,6 +35,8 @@ export function kickerOf(kicker: unknown): ReactNode {
 }
 
 export type Dock = 'left' | 'right' | 'bottom' | 'free';
+/** Who changed the pick set: the person (a checkbox, a pick, a remove, Clear), or the data (a key that left the rows). */
+export type PickCause = 'person' | 'data';
 export interface GeoWindowSpec { page: string; label: string; icon?: string; open?: boolean; dock?: Dock }
 export interface GeoLayout {
   kind: 'geo'; map: string; windows: GeoWindowSpec[];
@@ -68,6 +71,8 @@ export const DETAILS = 'details';
 export interface GeoFrame {
   /** The element in the bar a FeatureSearch draws into. */
   searchSlot: HTMLElement | null;
+  /** The element at the end of the bar's menu a GeoMap's legend toggle draws into (GEO-M-14). */
+  menuSlot?: HTMLElement | null;
   /** The layer over the map a GeoMap opens its selected feature's details window in. */
   detailsSlot: HTMLElement | null;
   /** The key the browser keeps the windows under (the app). */
@@ -103,15 +108,23 @@ export interface GeoFrame {
    * fit by them, so its subject lands where no window covers it.
    */
   insets?: { left: number; right: number; bottom: number };
+  /** The pages of the layout's windows that are open now, in the layout's order (a map layer's labels may hide while one is). */
+  openPages?: readonly string[];
   /**
    * The pick set of the layout's map (srad/agentspaces-geo.md GEO-M-09): the ordered keys, at most eight, a person
    * picked; held here, in the browser's memory only, so every window's table and the map read the same set.
    */
   picked?: readonly string[];
-  /** Sets the pick set, and the words the map's polite live region says of the change (its own words when none are given). */
-  setPicked?(keys: readonly string[], said?: string): void;
-  /** The words said of the last change of the pick set, and a count that tells two equal sayings apart. */
-  pickSaid?: { text: string; seq: number };
+  /**
+   * Sets the pick set, and the words the map's polite live region says of the change (its own words when none are given).
+   * By 'data' when the data caused the change (a key that left a table's rows), not the person: the map then keeps its view.
+   */
+  setPicked?(keys: readonly string[], said?: string, by?: PickCause): void;
+  /**
+   * The words said of the last change of the pick set, a count that tells two equal sayings apart, and whether the data
+   * (not the person) made that change.
+   */
+  pickSaid?: { text: string; seq: number; byData?: boolean };
   /** A select table tells the layout the keys its rows hold (nothing when it goes), so a watchbox's pick keeps to them. */
   listKeys?(source: string, keys: readonly string[] | undefined): void;
   /** The keys the select tables of the layout hold, or nothing when no select table is drawn. */
@@ -497,6 +510,7 @@ export function GeoPages({ surfaces, render, layout, title, lede, persist }: { s
   const key = persist || title || 'app';
   const [stageEl, setStageEl] = useState<HTMLElement | null>(null);
   const [searchSlot, setSearchSlot] = useState<HTMLElement | null>(null);
+  const [menuSlot, setMenuSlot] = useState<HTMLElement | null>(null);
   const [detailsSlot, setDetailsSlot] = useState<HTMLElement | null>(null);
   const stage = useSize(stageEl);
   const narrow = useNarrow(NARROW_PX);
@@ -570,11 +584,12 @@ export function GeoPages({ surfaces, render, layout, title, lede, persist }: { s
   }), []);
   // the pick set (GEO-M-09): memory only, never a space, storage or the URL; a reload empties it
   const [picked, setPickedState] = useState<readonly string[]>([]);
-  const [pickSaid, setPickSaid] = useState<{ text: string; seq: number }>({ text: '', seq: 0 });
-  const setPicked = useCallback((keys: readonly string[], said?: string) => {
+  const [pickSaid, setPickSaid] = useState<{ text: string; seq: number; byData?: boolean }>({ text: '', seq: 0 });
+  const setPicked = useCallback((keys: readonly string[], said?: string, by?: PickCause) => {
     const next = keys.filter((k, i) => typeof k === 'string' && k && keys.indexOf(k) === i).slice(0, MAX_PICKS);
+    // the words (and who made the change) first: the map reads them when the set itself changes
+    setPickSaid(prev => ({ text: said ?? (next.length ? `Showing ${next.length} on the map: ${next.join(', ')}.` : 'Nothing is picked; the map shows every layer.'), seq: prev.seq + 1, byData: by === 'data' }));
     setPickedState(prev => (prev.length === next.length && prev.every((k, i) => k === next[i]) ? prev : next));
-    setPickSaid(prev => ({ text: said ?? (next.length ? `Showing ${next.length} on the map: ${next.join(', ')}.` : 'Nothing is picked; the map shows every layer.'), seq: prev.seq + 1 }));
   }, []);
   const lists = useRef(new Map<string, ReadonlySet<string>>());
   const listKeys = useCallback((source: string, keys: readonly string[] | undefined) => { if (keys) lists.current.set(source, new Set(keys)); else lists.current.delete(source); }, []);
@@ -584,9 +599,11 @@ export function GeoPages({ surfaces, render, layout, title, lede, persist }: { s
     lists.current.forEach(ks => ks.forEach(k => all.add(k)));
     return all;
   }, []);
-  const frame = useMemo<GeoFrame>(() => ({ searchSlot, detailsSlot, persist: key, stage, narrow, focus, onFocus, overlays, setOverlay, raiseOver, setDetails, detailsAt, fitDetails, insets: frameInsets,
-    picked, setPicked, pickSaid, listKeys, listed }),
-    [searchSlot, detailsSlot, key, stage, narrow, focus, onFocus, overlays, setOverlay, raiseOver, detailsAt, fitDetails, frameInsets, picked, setPicked, pickSaid, listKeys, listed]);
+  const openKey = order.filter(p => states[p]?.open).join('\n');
+  const openPages = useMemo(() => (openKey ? openKey.split('\n') : []), [openKey]);
+  const frame = useMemo<GeoFrame>(() => ({ searchSlot, menuSlot, detailsSlot, persist: key, stage, narrow, focus, onFocus, overlays, setOverlay, raiseOver, setDetails, detailsAt, fitDetails, insets: frameInsets,
+    openPages, picked, setPicked, pickSaid, listKeys, listed }),
+    [searchSlot, menuSlot, detailsSlot, key, stage, narrow, focus, onFocus, overlays, setOverlay, raiseOver, detailsAt, fitDetails, frameInsets, openPages, picked, setPicked, pickSaid, listKeys, listed]);
   const rest = surfaces.filter(s => s !== layout.map && !order.includes(s));
   return (
     <GeoFrameContext.Provider value={frame}>
@@ -594,17 +611,17 @@ export function GeoPages({ surfaces, render, layout, title, lede, persist }: { s
         <header ref={bar} className="as-geo-bar" tabIndex={-1} aria-label="App bar">
           <div className="as-geo-title">{kickerOf(layout.kicker)}<b>{title ?? ''}</b>{lede ? <span className="as-geo-lede">{lede}</span> : null}</div>
           <div className="as-geo-search" ref={setSearchSlot} />
-          {specs.length ? (
-            <nav className="as-geo-menu" aria-label="Windows">
-              {specs.map(s => (
-                <button key={s.page} type="button" className={`as-geo-menu-item${states[s.page]?.open ? ' open' : ''}`} aria-pressed={Boolean(states[s.page]?.open)}
-                  title={(states[s.page]?.open ? 'Close ' : 'Open ') + s.label} onClick={() => toggle(s.page)}>
-                  {/* the label under its icon at every width; a name outside the icon set draws the window glyph */}
-                  <Icon name={s.icon && ICONS.includes(s.icon) ? s.icon : 'window'} /><span className="as-geo-menu-label">{s.label}</span>
-                </button>
-              ))}
-            </nav>
-          ) : null}
+          {/* drawn even with no window: a map's legend toggle draws at its end (menuSlot); with neither, it is not shown */}
+          <nav className="as-geo-menu" aria-label="Windows" data-windows={specs.length}>
+            {specs.map(s => (
+              <button key={s.page} type="button" className={`as-geo-menu-item${states[s.page]?.open ? ' open' : ''}`} aria-pressed={Boolean(states[s.page]?.open)}
+                title={(states[s.page]?.open ? 'Close ' : 'Open ') + s.label} onClick={() => toggle(s.page)}>
+                {/* the label under its icon at every width; a name outside the icon set draws the window glyph */}
+                <Icon name={s.icon && ICONS.includes(s.icon) ? s.icon : 'window'} /><span className="as-geo-menu-label">{s.label}</span>
+              </button>
+            ))}
+            <span className="as-geo-menu-slot" ref={setMenuSlot} />
+          </nav>
           {held ? <span className="as-geo-tools">{tools}</span> : null}
         </header>
         <div className="as-geo-stage" ref={setStageEl} style={stageStyle} data-dock-bottom={insets.bottom > 0 ? '' : undefined}>

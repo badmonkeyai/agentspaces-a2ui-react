@@ -42,6 +42,15 @@ A host adds its own catalog with `registerComponents(catalogId, implementations)
   - The renderer keeps its processor through React's StrictMode, which runs each effect's cleanup and setup twice in a development build. Calls still waiting when `Surfaces` unmounts end with `CANCELLED`.
 - **Why a call becomes an event inside the renderer.** web_core runs a `functionCall` itself and knows only the catalogs' functions. So `withAgentCalls` rewrites such an action, as its envelope arrives, into an event whose name only this renderer makes. web_core then resolves the event's context on the press as it does for any action.
 
+## Hiding a map's layer chips
+
+A `GeoMap` with a `legendToggle` option draws a button that shows or hides the legend's layer chips, each layer's swatch, name and count, so a map of many layers keeps its foot clear.
+
+- **The option.** `legendToggle: {label, hidden}`, both optional. `label` is the button's words, 1 to 24 characters, default "Layers". `hidden: true` starts the chips hidden.
+- **Where it draws.** In a GeoLayout, as the last item of the bar's menu, its label under the chart icon. Elsewhere, as the legend's first item.
+- **What a person gets.** A toggle button, pressed while the chips show, that names the chips it controls. The choice is kept per page in the browser, and wins over `hidden` on the next visit. While the chips are hidden, the button says how many layers are turned off.
+- **What stays.** The Picked group, Home, Table and the legend's notes. A chip still hides or shows its own layer, and the layer menu still agrees with it.
+
 ## Drawing an area on a map
 
 A `GeoMap` with a `draw` option shows a draw control over the map. The renderer adds only the drawing; what an area means is the agent's.

@@ -16,6 +16,7 @@ import type { VisualizeProps } from '../../generated/props';
 import { axisTicks, band, compact, linear } from '../../viz/scale';
 import { missingColumns, seriesOf, specOf, type VSeries, type VisualSpec } from '../../viz/visualize';
 import { bar } from './Chart';
+import { HeatmapView } from '../../viz/HeatmapView';
 
 const W = 640, H = 280, PAD = { l: 48, r: 16, t: 14, b: 30 };
 
@@ -27,6 +28,8 @@ export const Visualize = define<VisualizeProps>('Visualize', ({ props, ctx }) =>
   const rows = useMemo(() => (Array.isArray(bound) ? bound : bound && typeof bound === 'object' ? Object.values(bound) : []) as Record<string, unknown>[], [bound]);
   const state = path && bound === undefined ? 'loading' : path && (!bound || typeof bound !== 'object') ? 'error' : undefined;
   const spec = useMemo(() => specOf(props), [props.mark, props.x, JSON.stringify(props.y), props.color, props.aggregate, props.sort]); // eslint-disable-line react-hooks/exhaustive-deps
+  // a heatmap (srad/agentspaces-geo.md GEO-D-08) is a grid of cells with its own keyboard, pick and actions
+  if (props.mark === 'heatmap') return <HeatmapView props={props} ctx={ctx} rows={rows} state={state} path={path} />;
   return <VisualizeView spec={spec} rows={rows} hues={tokens.color.categorical} title={props.title} unit={props.unit} tableMode={props.table === 'below' ? 'below' : 'toggle'}
     state={state} path={path} />;
 });

@@ -10,20 +10,26 @@
 // cannot draw (no WebGL, a test), each layer's features are listed, and a row selects its feature. A design's draw option
 // adds the draw control (./DrawControl, GEO-F-21) over a drawn map: a circle or a polygon, named, sent as its action.
 // A layer with pick (srad/agentspaces-geo.md GEO-M-10) reads the person's pick set (../viz/pick): the picked
-// features alone or recoloured, a halo and a chip each, the other layers dimmed, one fit per change, the legend's Picked
+// features alone or recoloured, a halo and a chip each, the other layers dimmed, one fit per change the person makes (none
+// for one the data makes, none just after a fly the person asked for), the legend's Picked
 // group with a remove button per key and Clear, and one polite live region that says each change.
+// A legend toggle (srad/agentspaces-geo.md GEO-M-14) shows or hides the legend's layer entries: a pressed button that
+// names the entries it controls, the last item of the GeoLayout bar's menu (else the legend's first), the person's
+// choice kept per page in the browser over the design's hidden.
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { GeoWindow, useDetailsWindow, useGeoFrame } from '../frame/geo';
+import { Icon } from '../frame/icons';
 import { Empty, FeatureCardView } from './FeatureCardView';
 import { useData, type ComponentProps, type Ctx } from '../renderer/implementation';
 import { useLook } from '../look/provider';
 import type { GeoMapProps } from '../generated/props';
 import type { GeoAdapter, GeoView } from '../viz/map-adapter';
 import { basemapStyle, plainStyle } from '../viz/basemaps';
-import { ageOf, applyPicks, byId, capped, featuresState, MAX_PICKED, type MapInsets, inWindow, pickHue, pickKeyOf, sliderGrid, timeSpan, TIME_WINDOWS, viewKey, type Feature, type FeatureLayer } from '../viz/features';
+import { ageOf, applyPicks, byId, freshFeatures, capped, featuresState, legendKey, legendToggleOf, MAX_PICKED, type MapInsets, inWindow, pickHue, pickKeyOf, sliderGrid, timeSpan, TIME_WINDOWS, viewKey, type Feature, type FeatureLayer } from '../viz/features';
 import { usePicks } from '../viz/pick';
 import { useFeatureLayers, useHidden } from './hooks';
+import { compact } from '../viz/scale';
 import { DrawControl, type DrawSurface } from './DrawControl';
 import { drawSpec } from './draw';
 
@@ -34,16 +40,24 @@ function storedView(key: string): GeoView | undefined {
   } catch { return undefined; }
 }
 
+/** The person's kept choice for a map's legend entries: shown, hidden, or nothing kept. */
+function storedLegend(key: string): boolean | undefined {
+  try { const v = localStorage.getItem(key); return v === 'shown' ? true : v === 'hidden' ? false : undefined; } catch { return undefined; }
+}
+
 function homeOf(props: GeoMapProps): GeoView | undefined {
   const h = props.home as { center?: unknown; zoom?: unknown } | undefined;
   return h && Array.isArray(h.center) && h.center.length === 2 && typeof h.center[0] === 'number' && typeof h.center[1] === 'number'
     ? { center: [h.center[0], h.center[1]], zoom: typeof h.zoom === 'number' ? h.zoom : 10 } : undefined;
 }
 
-/** Writes the selection, and dispatches the design's select action with the feature's id and kind. */
-export function select(ctx: Ctx, path: string, id: string | undefined, action?: string, kind?: string) {
+/**
+ * Writes the selection, and dispatches the design's select action with the feature's id and kind; a hex layer's hexagon
+ * (srad/agentspaces-geo.md GEO-M-11) adds its hex id, its centre as [longitude, latitude] and the row it draws.
+ */
+export function select(ctx: Ctx, path: string, id: string | undefined, action?: string, kind?: string, feature?: Feature) {
   ctx.set(path, id ?? '');
-  if (id && action) ctx.dispatch(action, { id, kind: kind ?? '' });
+  if (id && action) ctx.dispatch(action, { id, kind: kind ?? '', ...(feature?.hex ? { hex: feature.hex.id, centre: feature.hex.centre, row: feature.hex.row } : {}) });
 }
 
 /** The order N steps through a map's features: by label, then id, so the same features step the same way. */
@@ -59,6 +73,12 @@ export const CONTROLS_TOP = 56;
 export const CONTROLS_BOTTOM = 44;
 /** How long after a fly starts a change in the docked windows' reach makes the map aim again. */
 export const REAIM_MS = 1500;
+
+/**
+ * How long a fly-to the person asked for (a row's click, the search, Centre, Enter) keeps the map where it went: no fit
+ * (a pick set's change, the first fit) moves the map within it, so what the person just asked to see stays in view.
+ */
+export const FLY_GUARD_MS = 3000;
 
 /**
  * Where a fly-to or a fit keeps its subject clear of in a GeoLayout: the docked windows (the frame's insets) and the map's
@@ -97,6 +117,19 @@ export function GeoMapView({ props, ctx }: ComponentProps<GeoMapProps>) {
   const insets = useRef<MapInsets | undefined>(undefined);
   insets.current = mapInsets(frame?.insets);
   const lastFly = useRef<{ f: Feature; at: number } | undefined>(undefined);
+  // the docked windows' reach, as a key: the labels are laid out inside what they leave visible, again when it changes
+  const insetsKey = JSON.stringify(insets.current ?? null);
+  // the layers whose labels hide while one of their windows is open (a layer's labels.hideWhileOpen)
+  const openKey = (frame?.openPages ?? []).join('\n');
+  const quietLabels = useMemo(() => {
+    const open = new Set(frame?.openPages ?? []);
+    return new Set(allLayers.filter(l => l.hideLabelsWhileOpen?.some(p => open.has(p))).map(l => l.index));
+  }, [openKey, allLayers]); // eslint-disable-line react-hooks/exhaustive-deps
+  // the ids each fitNew layer held at the last drawing
+  const heldIds = useRef(new Map<number, Set<string>>());
+  // when the person last asked the map to fly (drawn or not), for the fly's guard
+  const flewAt = useRef(0);
+  const flewLately = () => Date.now() - flewAt.current < FLY_GUARD_MS;
   const host = useRef<HTMLDivElement>(null);
   const adapter = useRef<GeoAdapter | null>(null);
   const fitted = useRef(false);
@@ -155,22 +188,31 @@ export function GeoMapView({ props, ctx }: ComponentProps<GeoMapProps>) {
     const a = adapter.current;
     if (status !== 'map' || !a) return;
     a.setFeatures(layers, { kinds, hidden, selected, follow, transition, status: tokens.color.status, overlays: frame?.overlays, accent: tokens.color.accent,
-      picks: pickLayers ? { hue: pickView.hue, chips: pickView.chips, dimmed: pickView.dimmed } : undefined,
-      onSelect: id => { if (!drawing.current) select(ctx, state.selected, id, props.selectAction, id ? allFeatures.get(id)?.feature.kind : undefined); } });
-    // fitted only once a fit happened: a map in a hidden page or window has no size yet, and fits when it gets one
+      picks: pickLayers ? { hue: pickView.hue, chips: pickView.chips, dimmed: pickView.dimmed } : undefined, insets: insets.current, quietLabels,
+      onSelect: id => { if (!drawing.current) select(ctx, state.selected, id, props.selectAction, id ? allFeatures.get(id)?.feature.kind : undefined, id ? allFeatures.get(id)?.feature : undefined); } });
+    // fitted only once a fit happened: a map in a hidden page or window has no size yet, and fits when it gets one; a
+    // fly the person just asked for counts as the fit
+    if (!fitted.current && flewLately()) fitted.current = true;
     if (!fitted.current) {
       const all = layers.flatMap(l => l.features);
       if (all.length && a.fit(all, insets.current)) fitted.current = true;
     }
-  }, [status, generation, layers, kinds, hidden, selected, follow, transition, tokens.color.status, frame?.overlays, pickView]);
-  // each change of the pick set fits the view once, over the picked features of the layers whose pick fits (GEO-M-10)
+    // a fitNew layer's features it did not hold at the last drawing fit the view once (§10.13: Show on a data set flies
+    // to its extent); a layer's first arrival is only recorded, and a fly the person just asked for wins
+    const fresh = freshFeatures(layers, heldIds.current);
+    if (fresh.length && fitted.current && !flewLately() && a.fit(fresh, insets.current, true)) flewAt.current = Date.now();
+  }, [status, generation, layers, kinds, hidden, selected, follow, transition, tokens.color.status, frame?.overlays, pickView, insetsKey, quietLabels]);
+  // each change of the pick set the person makes fits the view once, over the picked features of the layers whose pick
+  // fits (GEO-M-10); a change the data made (a key that left a table's rows) never moves the map, nor does any change
+  // within the guard of a fly the person asked for (a click on an alert flew there, then a prune of the pick set, as
+  // changing data took keys out of a table's rows, fitted the map back to the remaining picks somewhere else)
   const lastPicked = useRef(pickedKey);
   const pickFits = useRef(0);
   const [, setFitCount] = useState(0);
   useEffect(() => {
     if (pickedKey === lastPicked.current) return;
     lastPicked.current = pickedKey;
-    if (!picks.picked.length || !pickView.fit.length) return;
+    if (!picks.picked.length || !pickView.fit.length || picks.said.byData || flewLately()) return;
     pickFits.current++;
     setFitCount(pickFits.current);
     adapter.current?.fit(pickView.fit, insets.current, true);
@@ -193,6 +235,7 @@ export function GeoMapView({ props, ctx }: ComponentProps<GeoMapProps>) {
     const ro = new ResizeObserver(() => {
       const a = adapter.current;
       if (fitted.current || !a) return;
+      if (flewLately()) { fitted.current = true; return; }
       const all = drawn.current.flatMap(l => l.features);
       if (all.length && a.fit(all, insets.current)) fitted.current = true;
     });
@@ -202,7 +245,7 @@ export function GeoMapView({ props, ctx }: ComponentProps<GeoMapProps>) {
   // a watchbox's row in another window focuses a feature here (GEO-W-03)
   useEffect(() => frame?.onFocus(id => {
     if (!allFeatures.has(id)) return;   // a graph's node that is not one of this map's features
-    select(ctx, state.selected, id, props.selectAction, allFeatures.get(id)?.feature.kind);
+    select(ctx, state.selected, id, props.selectAction, allFeatures.get(id)?.feature.kind, allFeatures.get(id)?.feature);
     ctx.set(state.focus, { id, seq: Date.now() });
   }), [frame, allFeatures, state.selected, state.focus]);
   // a search's pick, a watchbox's row or a card's Centre: fly to the feature (GEO-S-02, GEO-W-03); one outside the time
@@ -214,11 +257,11 @@ export function GeoMapView({ props, ctx }: ComponentProps<GeoMapProps>) {
       const t = Date.parse(f.at);
       if (Number.isFinite(t)) setEnd(t >= span[1] ? null : t); else setWidth(0);
     }
+    flewAt.current = Date.now();
     if (adapter.current) { adapter.current.flyTo(f, insets.current); lastFly.current = { f, at: Date.now() }; }
   }, [focus?.seq, focus?.id]);
   // a fly often opens a window (the selection's details docks on the right): when the docked windows' reach changes
   // during the flight, the map aims again, so the feature lands clear of the window that just opened
-  const insetsKey = JSON.stringify(insets.current ?? null);
   useEffect(() => {
     const l = lastFly.current;
     if (l && Date.now() - l.at < REAIM_MS && adapter.current) adapter.current.flyTo(l.f, insets.current);
@@ -244,7 +287,7 @@ export function GeoMapView({ props, ctx }: ComponentProps<GeoMapProps>) {
     if (!shown.length) { setSaid('No features shown.'); return; }
     const at = selected ? shown.findIndex(f => f.id === selected) : -1;
     const next = shown[e.shiftKey ? (at <= 0 ? shown.length - 1 : at - 1) : (at + 1) % shown.length];
-    select(ctx, state.selected, next.id, props.selectAction, next.kind);
+    select(ctx, state.selected, next.id, props.selectAction, next.kind, next);
     setSaid(`${next.label || next.id}, ${next.kind}${next.severity ? ', ' + next.severity : ''}: ${shown.indexOf(next) + 1} of ${shown.length}. Enter shows it.`);
   };
   const toggle = (index: number) => {
@@ -253,6 +296,30 @@ export function GeoMapView({ props, ctx }: ComponentProps<GeoMapProps>) {
     ctx.set(state.hidden, [...next].sort((a, b) => a - b));
   };
   const showTable = table || status === 'fallback';
+  // the legend toggle (GEO-M-14): the person's choice, kept per page, else the design's hidden; an entry's own show and
+  // hide of its layer is untouched, and the hidden layers are counted on the toggle while the entries are out of sight
+  const legendToggle = legendToggleOf(props);
+  const legendStore = legendKey(ctx.surfaceId, props.id);
+  const [legendChoice, setLegendChoice] = useState<{ key: string; shown: boolean | undefined }>(() => ({ key: legendStore, shown: storedLegend(legendStore) }));
+  const chosen = legendChoice.key === legendStore ? legendChoice.shown : storedLegend(legendStore);
+  const entriesShown = !legendToggle || (chosen ?? !legendToggle.hidden);
+  const entriesId = useId();
+  const flipEntries = () => {
+    const next = !entriesShown;
+    setLegendChoice({ key: legendStore, shown: next });
+    try { localStorage.setItem(legendStore, next ? 'shown' : 'hidden'); } catch { /* a private window keeps no choice */ }
+  };
+  const layersOff = layers.filter(l => hidden.has(l.index)).length;
+  const offWords = !entriesShown && layersOff ? `${layersOff} off` : '';
+  const toggleTitle = `${entriesShown ? 'Hide' : 'Show'} the map's layers and their counts${layersOff ? ` (${layersOff} layer${layersOff === 1 ? '' : 's'} turned off)` : ''}`;
+  const toggleButton = legendToggle ? (inBar: boolean) => (
+    <button type="button" className={inBar ? `as-geo-menu-item as-legend-toggle${entriesShown ? ' open' : ''}` : 'bma-btn as-legend-toggle'}
+      aria-pressed={entriesShown} aria-controls={entriesId} title={toggleTitle} data-map={props.id} onClick={flipEntries}>
+      {inBar ? <Icon name="chart" /> : null}
+      <span className={inBar ? 'as-geo-menu-label' : undefined}>{legendToggle.label}{offWords ? <span className="as-legend-off"> · {offWords}</span> : null}</span>
+    </button>
+  ) : undefined;
+  const barToggle = toggleButton && frame?.menuSlot ? createPortal(toggleButton(true), frame.menuSlot) : null;
   // the legend's Picked group (GEO-M-10): a swatch, the key and a remove button each, and Clear; after a remove the focus
   // goes to the next remove button, else the previous, else Clear; after Clear (or the last remove) to the first select
   // table's first checkbox for this map, else the map
@@ -323,13 +390,17 @@ export function GeoMapView({ props, ctx }: ComponentProps<GeoMapProps>) {
       {pickLayers ? <p className="as-visually-hidden as-picked-said" aria-live="polite">{pickSaid}</p> : null}
       {props.legend !== false ? (
         <div className="legend" role="group" aria-label="layers">
+          {toggleButton && !frame?.menuSlot ? toggleButton(false) : null}
           {pickedGroup}
+          <span className="as-legend-entries" id={entriesId} role="group" aria-label="layer filters" hidden={!entriesShown}>
           {layers.map(l => (
             <button type="button" key={l.index} className={`entry${hidden.has(l.index) ? ' off' : ''}`} onClick={() => toggle(l.index)} aria-pressed={!hidden.has(l.index)}
               title={`${l.label || l.path}; click to ${hidden.has(l.index) ? 'show' : 'hide'}`}>
-              <span className="swatch" style={{ background: l.color }} />{l.label || l.path} <span className="bma-muted">{capped(l)}</span>
+              {l.ramp ? <span className="swatch as-ramp-swatch" style={{ background: `linear-gradient(to right, ${l.ramp.steps.join(', ')})` }} /> : <span className="swatch" style={{ background: l.color }} />}{l.label || l.path}
+              {l.ramp ? <span className="bma-muted"> {compact(l.ramp.domain.min)} to {compact(l.ramp.domain.max)},</span> : null} <span className="bma-muted">{capped(l)}</span>
             </button>
           ))}
+          </span>
           {home && status === 'map' ? <button type="button" className="bma-btn" onClick={() => adapter.current?.setView(home)}>Home</button> : null}
           {props.table !== false && status === 'map' ? <button type="button" className="bma-btn" onClick={() => setTable(t => !t)} aria-pressed={table}>{table ? 'Map' : 'Table'}</button> : null}
           {basemapFailed || !base.known ? <span className="bma-muted bma-small" role="status">{basemapFailed ? 'The basemap did not load; the features are drawn on a plain background.' : `No basemap is named ${String(props.basemap)}; the map draws ${base.name}.`}</span> : null}
@@ -359,10 +430,11 @@ export function GeoMapView({ props, ctx }: ComponentProps<GeoMapProps>) {
         <div className="table-view">
           {status === 'fallback' ? <span className="bma-muted bma-small">The map cannot draw here; the features of each layer:</span> : null}
           {status === 'loading' ? <span className="bma-muted bma-small">Loading the map…</span> : null}
-          {layers.filter(l => !hidden.has(l.index)).map(l => <FeatureTable key={l.index} layer={l} selected={selected} onSelect={id => select(ctx, state.selected, id, props.selectAction, features.get(id)?.feature.kind)} />)}
+          {layers.filter(l => !hidden.has(l.index)).map(l => <FeatureTable key={l.index} layer={l} selected={selected} onSelect={id => select(ctx, state.selected, id, props.selectAction, features.get(id)?.feature.kind, features.get(id)?.feature)} />)}
         </div>
       ) : null}
       {card}
+      {barToggle}
     </div>
   );
 }

@@ -726,6 +726,338 @@ export const GOLDENS: GoldenSurface[] = [
       {
         "createSurface": {
           "catalogId": "agentspaces-viz",
+          "surfaceId": "visualize-heatmap"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "visits"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "cellAction": "visit.open",
+              "component": "Visualize",
+              "facet": "person",
+              "focus": "place",
+              "id": "visits",
+              "mark": "heatmap",
+              "pick": {
+                "by": "person"
+              },
+              "row": "day",
+              "rowOrder": [
+                "Mon",
+                "Tue",
+                "Wed"
+              ],
+              "rows": "/visits",
+              "selected": "/slot",
+              "title": "Visits by hour",
+              "unit": "visits",
+              "x": "hour",
+              "xOrder": [
+                "08",
+                "09",
+                "10",
+                "11"
+              ],
+              "y": "count"
+            }
+          ],
+          "surfaceId": "visualize-heatmap"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "visualize-heatmap",
+          "value": {
+            "slot": {
+              "count": 5,
+              "day": "Mon",
+              "hour": "09",
+              "person": "Ada",
+              "place": "desk-north"
+            },
+            "visits": [
+              {
+                "count": 3,
+                "day": "Mon",
+                "hour": "08",
+                "person": "Ada",
+                "place": "desk-north"
+              },
+              {
+                "count": 5,
+                "day": "Mon",
+                "hour": "09",
+                "person": "Ada",
+                "place": "desk-north"
+              },
+              {
+                "count": 2,
+                "day": "Tue",
+                "hour": "10",
+                "person": "Ada",
+                "place": "lab-2"
+              },
+              {
+                "count": 1,
+                "day": "Mon",
+                "hour": "08",
+                "person": "Ben",
+                "place": "desk-south"
+              },
+              {
+                "count": 4,
+                "day": "Wed",
+                "hour": "10",
+                "person": "Ben",
+                "place": "lab-2"
+              }
+            ]
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Visits by hour",
+      "Ada",
+      "Ben",
+      "Mon",
+      "Tue",
+      "Wed",
+      "08",
+      "11"
+    ],
+    "name": "Visualize",
+    "state": "heatmap",
+    "surfaceId": "visualize-heatmap"
+  },
+  {
+    "catalogId": "agentspaces-viz",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-viz",
+          "surfaceId": "visualize-heatmap-empty"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "visits"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "cellAction": "visit.open",
+              "component": "Visualize",
+              "facet": "person",
+              "focus": "place",
+              "id": "visits",
+              "mark": "heatmap",
+              "pick": {
+                "by": "person"
+              },
+              "row": "day",
+              "rowOrder": [
+                "Mon",
+                "Tue",
+                "Wed"
+              ],
+              "rows": "/visits",
+              "selected": "/slot",
+              "title": "Visits by hour",
+              "unit": "visits",
+              "x": "hour",
+              "xOrder": [
+                "08",
+                "09",
+                "10",
+                "11"
+              ],
+              "y": "count"
+            }
+          ],
+          "surfaceId": "visualize-heatmap-empty"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "visualize-heatmap-empty",
+          "value": {
+            "visits": []
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Visits by hour",
+      "No rows yet"
+    ],
+    "name": "Visualize",
+    "state": "heatmap-empty",
+    "surfaceId": "visualize-heatmap-empty"
+  },
+  {
+    "catalogId": "agentspaces-viz",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-viz",
+          "surfaceId": "visualize-heatmap-loading"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "visits"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "cellAction": "visit.open",
+              "component": "Visualize",
+              "facet": "person",
+              "focus": "place",
+              "id": "visits",
+              "mark": "heatmap",
+              "pick": {
+                "by": "person"
+              },
+              "row": "day",
+              "rowOrder": [
+                "Mon",
+                "Tue",
+                "Wed"
+              ],
+              "rows": "/visits",
+              "selected": "/slot",
+              "title": "Visits by hour",
+              "unit": "visits",
+              "x": "hour",
+              "xOrder": [
+                "08",
+                "09",
+                "10",
+                "11"
+              ],
+              "y": "count"
+            }
+          ],
+          "surfaceId": "visualize-heatmap-loading"
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Visits by hour",
+      "Loading the rows"
+    ],
+    "name": "Visualize",
+    "state": "heatmap-loading",
+    "surfaceId": "visualize-heatmap-loading"
+  },
+  {
+    "catalogId": "agentspaces-viz",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-viz",
+          "surfaceId": "visualize-heatmap-error"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "visits"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "cellAction": "visit.open",
+              "component": "Visualize",
+              "facet": "person",
+              "focus": "place",
+              "id": "visits",
+              "mark": "heatmap",
+              "pick": {
+                "by": "person"
+              },
+              "row": "day",
+              "rowOrder": [
+                "Mon",
+                "Tue",
+                "Wed"
+              ],
+              "rows": "/visits",
+              "selected": "/slot",
+              "title": "Visits by hour",
+              "unit": "visits",
+              "x": "hour",
+              "xOrder": [
+                "08",
+                "09",
+                "10",
+                "11"
+              ],
+              "y": "count"
+            }
+          ],
+          "surfaceId": "visualize-heatmap-error"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "visualize-heatmap-error",
+          "value": {
+            "visits": "not a list"
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Visits by hour",
+      "Unavailable",
+      "do not read as a table"
+    ],
+    "name": "Visualize",
+    "state": "heatmap-error",
+    "surfaceId": "visualize-heatmap-error"
+  },
+  {
+    "catalogId": "agentspaces-viz",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-viz",
           "surfaceId": "datatable"
         },
         "version": "1.0"
@@ -1226,6 +1558,380 @@ export const GOLDENS: GoldenSurface[] = [
     "name": "DataTable",
     "state": "empty",
     "surfaceId": "datatable-empty"
+  },
+  {
+    "catalogId": "agentspaces-viz",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-viz",
+          "surfaceId": "datatable-tasks"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "tasks"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "columns": [
+                {
+                  "key": "task",
+                  "title": "Task"
+                },
+                {
+                  "key": "lane",
+                  "title": "Lane"
+                },
+                {
+                  "format": "state",
+                  "key": "state",
+                  "title": "State"
+                },
+                {
+                  "format": "number",
+                  "key": "progress",
+                  "title": "Progress"
+                }
+              ],
+              "component": "DataTable",
+              "emptyText": "No task yet.",
+              "id": "tasks",
+              "rowActions": [
+                {
+                  "action": "task.show",
+                  "label": "Show"
+                },
+                {
+                  "action": "task.both",
+                  "label": "Show both",
+                  "pick": {
+                    "from": "pair"
+                  }
+                }
+              ],
+              "rowFilter": {
+                "match": "lane",
+                "path": "/lane"
+              },
+              "rows": "/tasks"
+            }
+          ],
+          "surfaceId": "datatable-tasks"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "datatable-tasks",
+          "value": {
+            "lane": "north",
+            "tasks": [
+              {
+                "lane": "north",
+                "pair": [
+                  "crane-3",
+                  "crane-7"
+                ],
+                "progress": 40,
+                "state": "working",
+                "task": "Survey the dock"
+              },
+              {
+                "lane": "north",
+                "pair": [
+                  "forklift-2"
+                ],
+                "progress": 100,
+                "state": "completed",
+                "task": "Count the pallets"
+              },
+              {
+                "lane": "south",
+                "pair": [],
+                "progress": 10,
+                "state": "failed",
+                "task": "Check the gate"
+              }
+            ]
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Task",
+      "State",
+      "Survey the dock",
+      "working",
+      "Count the pallets",
+      "completed",
+      "Show both",
+      "2 of 3 rows"
+    ],
+    "name": "DataTable",
+    "state": "tasks",
+    "surfaceId": "datatable-tasks"
+  },
+  {
+    "catalogId": "agentspaces-viz",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-viz",
+          "surfaceId": "datatable-tasks-empty"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "tasks"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "columns": [
+                {
+                  "key": "task",
+                  "title": "Task"
+                },
+                {
+                  "key": "lane",
+                  "title": "Lane"
+                },
+                {
+                  "format": "state",
+                  "key": "state",
+                  "title": "State"
+                },
+                {
+                  "format": "number",
+                  "key": "progress",
+                  "title": "Progress"
+                }
+              ],
+              "component": "DataTable",
+              "emptyText": "No task yet.",
+              "id": "tasks",
+              "rowActions": [
+                {
+                  "action": "task.show",
+                  "label": "Show"
+                },
+                {
+                  "action": "task.both",
+                  "label": "Show both",
+                  "pick": {
+                    "from": "pair"
+                  }
+                }
+              ],
+              "rowFilter": {
+                "match": "lane",
+                "path": "/lane"
+              },
+              "rows": "/tasks"
+            }
+          ],
+          "surfaceId": "datatable-tasks-empty"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "datatable-tasks-empty",
+          "value": {
+            "lane": "north",
+            "tasks": []
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Task",
+      "No task yet."
+    ],
+    "name": "DataTable",
+    "state": "tasks-empty",
+    "surfaceId": "datatable-tasks-empty"
+  },
+  {
+    "catalogId": "agentspaces-viz",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-viz",
+          "surfaceId": "datatable-tasks-loading"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "tasks"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "columns": [
+                {
+                  "key": "task",
+                  "title": "Task"
+                },
+                {
+                  "key": "lane",
+                  "title": "Lane"
+                },
+                {
+                  "format": "state",
+                  "key": "state",
+                  "title": "State"
+                },
+                {
+                  "format": "number",
+                  "key": "progress",
+                  "title": "Progress"
+                }
+              ],
+              "component": "DataTable",
+              "emptyText": "No task yet.",
+              "id": "tasks",
+              "rowActions": [
+                {
+                  "action": "task.show",
+                  "label": "Show"
+                },
+                {
+                  "action": "task.both",
+                  "label": "Show both",
+                  "pick": {
+                    "from": "pair"
+                  }
+                }
+              ],
+              "rowFilter": {
+                "match": "lane",
+                "path": "/lane"
+              },
+              "rows": "/tasks"
+            }
+          ],
+          "surfaceId": "datatable-tasks-loading"
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Task",
+      "Loading the rows"
+    ],
+    "name": "DataTable",
+    "state": "tasks-loading",
+    "surfaceId": "datatable-tasks-loading"
+  },
+  {
+    "catalogId": "agentspaces-viz",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-viz",
+          "surfaceId": "datatable-tasks-error"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "tasks"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "columns": [
+                {
+                  "key": "task",
+                  "title": "Task"
+                },
+                {
+                  "key": "lane",
+                  "title": "Lane"
+                },
+                {
+                  "format": "state",
+                  "key": "state",
+                  "title": "State"
+                },
+                {
+                  "format": "number",
+                  "key": "progress",
+                  "title": "Progress"
+                }
+              ],
+              "component": "DataTable",
+              "emptyText": "No task yet.",
+              "id": "tasks",
+              "rowActions": [
+                {
+                  "action": "task.show",
+                  "label": "Show"
+                },
+                {
+                  "action": "task.both",
+                  "label": "Show both",
+                  "pick": {
+                    "from": "pair"
+                  }
+                }
+              ],
+              "rowFilter": {
+                "match": "lane",
+                "path": "/lane"
+              },
+              "rows": "/tasks"
+            }
+          ],
+          "surfaceId": "datatable-tasks-error"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "datatable-tasks-error",
+          "value": {
+            "tasks": "not a list"
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Task",
+      "Unavailable",
+      "do not read as a table"
+    ],
+    "name": "DataTable",
+    "state": "tasks-error",
+    "surfaceId": "datatable-tasks-error"
   },
   {
     "catalogId": "agentspaces-viz",
@@ -4625,6 +5331,575 @@ export const GOLDENS: GoldenSurface[] = [
       {
         "createSurface": {
           "catalogId": "agentspaces-geo",
+          "surfaceId": "geoGeoMap-legend-toggle"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "harbour"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "component": "GeoMap",
+              "home": {
+                "center": [
+                  -3,
+                  53.4
+                ],
+                "zoom": 12
+              },
+              "id": "harbour",
+              "layers": [
+                {
+                  "kind": "area.berth",
+                  "label": "Berths",
+                  "path": "/berths"
+                },
+                {
+                  "cluster": {
+                    "below": 9
+                  },
+                  "kind": "track.ship*",
+                  "label": "Ships",
+                  "path": "/ships",
+                  "style": {
+                    "icon": "ship"
+                  }
+                }
+              ],
+              "legendToggle": {
+                "hidden": true,
+                "label": "Stats"
+              }
+            }
+          ],
+          "surfaceId": "geoGeoMap-legend-toggle"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "geoGeoMap-legend-toggle",
+          "value": {
+            "berths": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    [
+                      [
+                        -3.01,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.4
+                      ]
+                    ]
+                  ],
+                  "type": "Polygon"
+                },
+                "id": "berth4",
+                "kind": "area.berth",
+                "label": "Berth 4",
+                "properties": {},
+                "schemaVersion": 1,
+                "style": {
+                  "fill": "#29261e",
+                  "opacity": 0.6,
+                  "stroke": "#9a8139"
+                },
+                "type": "Feature"
+              }
+            ],
+            "berthsTotal": 1,
+            "ships": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3.0123,
+                    53.4087
+                  ],
+                  "type": "Point"
+                },
+                "id": "ship217",
+                "kind": "track.ship.cargo",
+                "label": "MV Northgate",
+                "properties": {
+                  "destination": "Berth 4",
+                  "mmsi": "235012345",
+                  "speed_kn": 11.2
+                },
+                "schemaVersion": 1,
+                "severity": "info",
+                "style": {
+                  "heading": 74
+                },
+                "type": "Feature"
+              },
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3.05,
+                    53.45
+                  ],
+                  "type": "Point"
+                },
+                "id": "ship340",
+                "kind": "track.ship.tanker",
+                "label": "Saint Brendan",
+                "properties": {
+                  "mmsi": "235099876",
+                  "speed_kn": 0.4
+                },
+                "schemaVersion": 1,
+                "severity": "warning",
+                "style": {},
+                "type": "Feature"
+              }
+            ],
+            "shipsTotal": 2
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Stats",
+      "MV Northgate",
+      "Berth 4"
+    ],
+    "name": "GeoMap",
+    "state": "legend-toggle",
+    "surfaceId": "geoGeoMap-legend-toggle"
+  },
+  {
+    "catalogId": "agentspaces-geo",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-geo",
+          "surfaceId": "geoGeoMap-hexes"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "busyMap"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "component": "GeoMap",
+              "home": {
+                "center": [
+                  -3,
+                  53.4
+                ],
+                "zoom": 12
+              },
+              "id": "busyMap",
+              "layers": [
+                {
+                  "hexes": {
+                    "id": "cell",
+                    "label": "name",
+                    "size": 600,
+                    "value": "busy"
+                  },
+                  "label": "Busy areas",
+                  "path": "/busy",
+                  "style": {
+                    "opacity": 0.3
+                  }
+                },
+                {
+                  "filter": {
+                    "match": "hour",
+                    "path": "/hour"
+                  },
+                  "hexes": {
+                    "id": "cell",
+                    "label": "name",
+                    "size": 225,
+                    "value": "busy"
+                  },
+                  "label": "Busy places",
+                  "path": "/busy",
+                  "style": {
+                    "opacity": 0.6
+                  }
+                }
+              ],
+              "selectAction": "place.open"
+            }
+          ],
+          "surfaceId": "geoGeoMap-hexes"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "geoGeoMap-hexes",
+          "value": {
+            "busy": [
+              {
+                "busy": 0.9,
+                "cell": "hx:225:-11312,20913",
+                "hour": "09",
+                "name": "Pier Head"
+              },
+              {
+                "busy": 0.9,
+                "cell": "hx:600:-4242,7842",
+                "hour": "09",
+                "name": "Pier Head"
+              },
+              {
+                "busy": 0.4,
+                "cell": "hx:225:-11323,20916",
+                "hour": "09",
+                "name": "Seacombe"
+              },
+              {
+                "busy": 0.4,
+                "cell": "hx:600:-4246,7843",
+                "hour": "09",
+                "name": "Seacombe"
+              },
+              {
+                "busy": 0.7,
+                "cell": "hx:225:-11310,20911",
+                "hour": "10",
+                "name": "Albert Dock"
+              },
+              {
+                "busy": 0.7,
+                "cell": "hx:600:-4241,7841",
+                "hour": "10",
+                "name": "Albert Dock"
+              }
+            ],
+            "hour": "09"
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Busy areas",
+      "Busy places",
+      "Pier Head",
+      "Seacombe"
+    ],
+    "name": "GeoMap",
+    "state": "hexes",
+    "surfaceId": "geoGeoMap-hexes"
+  },
+  {
+    "catalogId": "agentspaces-geo",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-geo",
+          "surfaceId": "geoGeoMap-hexes-empty"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "busyMap"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "component": "GeoMap",
+              "home": {
+                "center": [
+                  -3,
+                  53.4
+                ],
+                "zoom": 12
+              },
+              "id": "busyMap",
+              "layers": [
+                {
+                  "hexes": {
+                    "id": "cell",
+                    "label": "name",
+                    "size": 600,
+                    "value": "busy"
+                  },
+                  "label": "Busy areas",
+                  "path": "/busy",
+                  "style": {
+                    "opacity": 0.3
+                  }
+                },
+                {
+                  "filter": {
+                    "match": "hour",
+                    "path": "/hour"
+                  },
+                  "hexes": {
+                    "id": "cell",
+                    "label": "name",
+                    "size": 225,
+                    "value": "busy"
+                  },
+                  "label": "Busy places",
+                  "path": "/busy",
+                  "style": {
+                    "opacity": 0.6
+                  }
+                }
+              ],
+              "selectAction": "place.open"
+            }
+          ],
+          "surfaceId": "geoGeoMap-hexes-empty"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "geoGeoMap-hexes-empty",
+          "value": {
+            "busy": [],
+            "hour": "09"
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Busy areas",
+      "Busy places",
+      "No feature yet"
+    ],
+    "name": "GeoMap",
+    "state": "hexes-empty",
+    "surfaceId": "geoGeoMap-hexes-empty"
+  },
+  {
+    "catalogId": "agentspaces-geo",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-geo",
+          "surfaceId": "geoGeoMap-hexes-loading"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "busyMap"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "component": "GeoMap",
+              "home": {
+                "center": [
+                  -3,
+                  53.4
+                ],
+                "zoom": 12
+              },
+              "id": "busyMap",
+              "layers": [
+                {
+                  "hexes": {
+                    "id": "cell",
+                    "label": "name",
+                    "size": 600,
+                    "value": "busy"
+                  },
+                  "label": "Busy areas",
+                  "path": "/busy",
+                  "style": {
+                    "opacity": 0.3
+                  }
+                },
+                {
+                  "filter": {
+                    "match": "hour",
+                    "path": "/hour"
+                  },
+                  "hexes": {
+                    "id": "cell",
+                    "label": "name",
+                    "size": 225,
+                    "value": "busy"
+                  },
+                  "label": "Busy places",
+                  "path": "/busy",
+                  "style": {
+                    "opacity": 0.6
+                  }
+                }
+              ],
+              "selectAction": "place.open"
+            }
+          ],
+          "surfaceId": "geoGeoMap-hexes-loading"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "geoGeoMap-hexes-loading",
+          "value": {}
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Busy areas",
+      "Busy places",
+      "Loading the features"
+    ],
+    "name": "GeoMap",
+    "state": "hexes-loading",
+    "surfaceId": "geoGeoMap-hexes-loading"
+  },
+  {
+    "catalogId": "agentspaces-geo",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-geo",
+          "surfaceId": "geoGeoMap-hexes-error"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "busyMap"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "component": "GeoMap",
+              "home": {
+                "center": [
+                  -3,
+                  53.4
+                ],
+                "zoom": 12
+              },
+              "id": "busyMap",
+              "layers": [
+                {
+                  "hexes": {
+                    "id": "cell",
+                    "label": "name",
+                    "size": 600,
+                    "value": "busy"
+                  },
+                  "label": "Busy areas",
+                  "path": "/busy",
+                  "style": {
+                    "opacity": 0.3
+                  }
+                },
+                {
+                  "filter": {
+                    "match": "hour",
+                    "path": "/hour"
+                  },
+                  "hexes": {
+                    "id": "cell",
+                    "label": "name",
+                    "size": 225,
+                    "value": "busy"
+                  },
+                  "label": "Busy places",
+                  "path": "/busy",
+                  "style": {
+                    "opacity": 0.6
+                  }
+                }
+              ],
+              "selectAction": "place.open"
+            }
+          ],
+          "surfaceId": "geoGeoMap-hexes-error"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "geoGeoMap-hexes-error",
+          "value": {
+            "busy": "not a list",
+            "hour": "09"
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Unavailable",
+      "/busy"
+    ],
+    "name": "GeoMap",
+    "state": "hexes-error",
+    "surfaceId": "geoGeoMap-hexes-error"
+  },
+  {
+    "catalogId": "agentspaces-geo",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-geo",
           "surfaceId": "geoFeatureCard"
         },
         "version": "1.0"
@@ -6574,6 +7849,707 @@ export const GOLDENS: GoldenSurface[] = [
     "name": "Watchbox",
     "state": "pick",
     "surfaceId": "geoWatchbox-pick"
+  },
+  {
+    "catalogId": "agentspaces-geo",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-geo",
+          "surfaceId": "geoWatchbox-sorted"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "places",
+                "harbour"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "component": "Watchbox",
+              "fields": [
+                "score"
+              ],
+              "id": "places",
+              "kind": "place*",
+              "label": "places",
+              "map": "harbour",
+              "path": "/scores",
+              "sort": "-score"
+            },
+            {
+              "component": "GeoMap",
+              "home": {
+                "center": [
+                  -3,
+                  53.4
+                ],
+                "zoom": 12
+              },
+              "id": "harbour",
+              "layers": [
+                {
+                  "kind": "area.berth",
+                  "label": "Berths",
+                  "path": "/berths"
+                },
+                {
+                  "cluster": {
+                    "below": 9
+                  },
+                  "kind": "track.ship*",
+                  "label": "Ships",
+                  "path": "/ships",
+                  "style": {
+                    "icon": "ship"
+                  }
+                }
+              ]
+            }
+          ],
+          "surfaceId": "geoWatchbox-sorted"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "geoWatchbox-sorted",
+          "value": {
+            "berths": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    [
+                      [
+                        -3.01,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.4
+                      ]
+                    ]
+                  ],
+                  "type": "Polygon"
+                },
+                "id": "berth4",
+                "kind": "area.berth",
+                "label": "Berth 4",
+                "properties": {},
+                "schemaVersion": 1,
+                "style": {
+                  "fill": "#29261e",
+                  "opacity": 0.6,
+                  "stroke": "#9a8139"
+                },
+                "type": "Feature"
+              }
+            ],
+            "berthsTotal": 1,
+            "scores": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3,
+                    53.4
+                  ],
+                  "type": "Point"
+                },
+                "id": "pl1",
+                "kind": "place.quay",
+                "label": "Princes Quay",
+                "properties": {
+                  "score": 3
+                },
+                "schemaVersion": 1,
+                "style": {},
+                "type": "Feature"
+              },
+              {
+                "_at": "2026-11-12T09:13:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:13:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3.01,
+                    53.41
+                  ],
+                  "type": "Point"
+                },
+                "id": "pl2",
+                "kind": "place.quay",
+                "label": "Canning Dock",
+                "properties": {
+                  "score": 9
+                },
+                "schemaVersion": 1,
+                "style": {},
+                "type": "Feature"
+              },
+              {
+                "_at": "2026-11-12T09:12:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:12:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3.02,
+                    53.42
+                  ],
+                  "type": "Point"
+                },
+                "id": "pl3",
+                "kind": "place.quay",
+                "label": "Salthouse Dock",
+                "properties": {
+                  "score": 5
+                },
+                "schemaVersion": 1,
+                "style": {},
+                "type": "Feature"
+              }
+            ],
+            "ships": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3.0123,
+                    53.4087
+                  ],
+                  "type": "Point"
+                },
+                "id": "ship217",
+                "kind": "track.ship.cargo",
+                "label": "MV Northgate",
+                "properties": {
+                  "destination": "Berth 4",
+                  "mmsi": "235012345",
+                  "speed_kn": 11.2
+                },
+                "schemaVersion": 1,
+                "severity": "info",
+                "style": {
+                  "heading": 74
+                },
+                "type": "Feature"
+              },
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3.05,
+                    53.45
+                  ],
+                  "type": "Point"
+                },
+                "id": "ship340",
+                "kind": "track.ship.tanker",
+                "label": "Saint Brendan",
+                "properties": {
+                  "mmsi": "235099876",
+                  "speed_kn": 0.4
+                },
+                "schemaVersion": 1,
+                "severity": "warning",
+                "style": {},
+                "type": "Feature"
+              }
+            ],
+            "shipsTotal": 2
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Canning Dock",
+      "Salthouse Dock",
+      "Princes Quay",
+      "score 9"
+    ],
+    "name": "Watchbox",
+    "state": "sorted",
+    "surfaceId": "geoWatchbox-sorted"
+  },
+  {
+    "catalogId": "agentspaces-geo",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-geo",
+          "surfaceId": "geoWatchbox-sorted-empty"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "places",
+                "harbour"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "component": "Watchbox",
+              "fields": [
+                "score"
+              ],
+              "id": "places",
+              "kind": "place*",
+              "label": "places",
+              "map": "harbour",
+              "path": "/scores",
+              "sort": "-score"
+            },
+            {
+              "component": "GeoMap",
+              "home": {
+                "center": [
+                  -3,
+                  53.4
+                ],
+                "zoom": 12
+              },
+              "id": "harbour",
+              "layers": [
+                {
+                  "kind": "area.berth",
+                  "label": "Berths",
+                  "path": "/berths"
+                },
+                {
+                  "cluster": {
+                    "below": 9
+                  },
+                  "kind": "track.ship*",
+                  "label": "Ships",
+                  "path": "/ships",
+                  "style": {
+                    "icon": "ship"
+                  }
+                }
+              ]
+            }
+          ],
+          "surfaceId": "geoWatchbox-sorted-empty"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "geoWatchbox-sorted-empty",
+          "value": {
+            "berths": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    [
+                      [
+                        -3.01,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.4
+                      ]
+                    ]
+                  ],
+                  "type": "Polygon"
+                },
+                "id": "berth4",
+                "kind": "area.berth",
+                "label": "Berth 4",
+                "properties": {},
+                "schemaVersion": 1,
+                "style": {
+                  "fill": "#29261e",
+                  "opacity": 0.6,
+                  "stroke": "#9a8139"
+                },
+                "type": "Feature"
+              }
+            ],
+            "berthsTotal": 1,
+            "scores": [],
+            "ships": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3.0123,
+                    53.4087
+                  ],
+                  "type": "Point"
+                },
+                "id": "ship217",
+                "kind": "track.ship.cargo",
+                "label": "MV Northgate",
+                "properties": {
+                  "destination": "Berth 4",
+                  "mmsi": "235012345",
+                  "speed_kn": 11.2
+                },
+                "schemaVersion": 1,
+                "severity": "info",
+                "style": {
+                  "heading": 74
+                },
+                "type": "Feature"
+              },
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3.05,
+                    53.45
+                  ],
+                  "type": "Point"
+                },
+                "id": "ship340",
+                "kind": "track.ship.tanker",
+                "label": "Saint Brendan",
+                "properties": {
+                  "mmsi": "235099876",
+                  "speed_kn": 0.4
+                },
+                "schemaVersion": 1,
+                "severity": "warning",
+                "style": {},
+                "type": "Feature"
+              }
+            ],
+            "shipsTotal": 2
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "All quiet",
+      "Waiting for places"
+    ],
+    "name": "Watchbox",
+    "state": "sorted-empty",
+    "surfaceId": "geoWatchbox-sorted-empty"
+  },
+  {
+    "catalogId": "agentspaces-geo",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-geo",
+          "surfaceId": "geoWatchbox-sorted-loading"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "places",
+                "harbour"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "component": "Watchbox",
+              "fields": [
+                "score"
+              ],
+              "id": "places",
+              "kind": "place*",
+              "label": "places",
+              "map": "harbour",
+              "path": "/scores",
+              "sort": "-score"
+            },
+            {
+              "component": "GeoMap",
+              "home": {
+                "center": [
+                  -3,
+                  53.4
+                ],
+                "zoom": 12
+              },
+              "id": "harbour",
+              "layers": [
+                {
+                  "kind": "area.berth",
+                  "label": "Berths",
+                  "path": "/berths"
+                },
+                {
+                  "cluster": {
+                    "below": 9
+                  },
+                  "kind": "track.ship*",
+                  "label": "Ships",
+                  "path": "/ships",
+                  "style": {
+                    "icon": "ship"
+                  }
+                }
+              ]
+            }
+          ],
+          "surfaceId": "geoWatchbox-sorted-loading"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "geoWatchbox-sorted-loading",
+          "value": {}
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Loading places"
+    ],
+    "name": "Watchbox",
+    "state": "sorted-loading",
+    "surfaceId": "geoWatchbox-sorted-loading"
+  },
+  {
+    "catalogId": "agentspaces-geo",
+    "envelopes": [
+      {
+        "createSurface": {
+          "catalogId": "agentspaces-geo",
+          "surfaceId": "geoWatchbox-sorted-error"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateComponents": {
+          "components": [
+            {
+              "children": [
+                "places",
+                "harbour"
+              ],
+              "component": "Column",
+              "id": "root"
+            },
+            {
+              "component": "Watchbox",
+              "fields": [
+                "score"
+              ],
+              "id": "places",
+              "kind": "place*",
+              "label": "places",
+              "map": "harbour",
+              "path": "/scores",
+              "sort": "-score"
+            },
+            {
+              "component": "GeoMap",
+              "home": {
+                "center": [
+                  -3,
+                  53.4
+                ],
+                "zoom": 12
+              },
+              "id": "harbour",
+              "layers": [
+                {
+                  "kind": "area.berth",
+                  "label": "Berths",
+                  "path": "/berths"
+                },
+                {
+                  "cluster": {
+                    "below": 9
+                  },
+                  "kind": "track.ship*",
+                  "label": "Ships",
+                  "path": "/ships",
+                  "style": {
+                    "icon": "ship"
+                  }
+                }
+              ]
+            }
+          ],
+          "surfaceId": "geoWatchbox-sorted-error"
+        },
+        "version": "1.0"
+      },
+      {
+        "updateDataModel": {
+          "path": "/",
+          "surfaceId": "geoWatchbox-sorted-error",
+          "value": {
+            "berths": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    [
+                      [
+                        -3.01,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.4
+                      ],
+                      [
+                        -3,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.41
+                      ],
+                      [
+                        -3.01,
+                        53.4
+                      ]
+                    ]
+                  ],
+                  "type": "Polygon"
+                },
+                "id": "berth4",
+                "kind": "area.berth",
+                "label": "Berth 4",
+                "properties": {},
+                "schemaVersion": 1,
+                "style": {
+                  "fill": "#29261e",
+                  "opacity": 0.6,
+                  "stroke": "#9a8139"
+                },
+                "type": "Feature"
+              }
+            ],
+            "berthsTotal": 1,
+            "scores": "not a list",
+            "ships": [
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3.0123,
+                    53.4087
+                  ],
+                  "type": "Point"
+                },
+                "id": "ship217",
+                "kind": "track.ship.cargo",
+                "label": "MV Northgate",
+                "properties": {
+                  "destination": "Berth 4",
+                  "mmsi": "235012345",
+                  "speed_kn": 11.2
+                },
+                "schemaVersion": 1,
+                "severity": "info",
+                "style": {
+                  "heading": 74
+                },
+                "type": "Feature"
+              },
+              {
+                "_at": "2026-11-12T09:14:03Z",
+                "_type": "GeoFeature",
+                "at": "2026-11-12T09:14:03Z",
+                "geometry": {
+                  "coordinates": [
+                    -3.05,
+                    53.45
+                  ],
+                  "type": "Point"
+                },
+                "id": "ship340",
+                "kind": "track.ship.tanker",
+                "label": "Saint Brendan",
+                "properties": {
+                  "mmsi": "235099876",
+                  "speed_kn": 0.4
+                },
+                "schemaVersion": 1,
+                "severity": "warning",
+                "style": {},
+                "type": "Feature"
+              }
+            ],
+            "shipsTotal": 2
+          }
+        },
+        "version": "1.0"
+      }
+    ],
+    "expectText": [
+      "Unavailable",
+      "/scores"
+    ],
+    "name": "Watchbox",
+    "state": "sorted-error",
+    "surfaceId": "geoWatchbox-sorted-error"
   },
   {
     "catalogId": "agentspaces-geo",

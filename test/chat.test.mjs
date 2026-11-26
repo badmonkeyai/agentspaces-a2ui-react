@@ -381,3 +381,43 @@ test('A2UI 1.0\'s @accessibility label names the chat\'s message box, not a grou
   const host = container.querySelector('a2ui-react-Chat, [data-component="Chat"]');
   assert.ok(!host || host.getAttribute('role') !== 'group' || !host.getAttribute('aria-label'), 'the host is not labelled as a group as well');
 });
+
+test('a desk\'s request draws as a card: a press sends the answer once, and the decision updates every copy (SPEC §6.1a.7)', async () => {
+  localStorage.setItem('agentspaces-chat-secret', SA);
+  const ask = { id: 'm-desk-1', key: 'main', from: { kind: 'agent', name: 'refunds-desk', peer: 'p9' }, text: 'Refund 250 dollars on order o-7? Reply approve or reject (code K7Q2).',
+    inReplyTo: '', at: '2026-11-10T14:00:00Z', schemaVersion: 3,
+    confirm: { invocationId: 'inv-7', desk: '#refunds', kind: 'approval', question: 'Refund 250 dollars on order o-7?', action: 'orders#refund', arguments: '{}',
+      summary: 'Refunds order o-7 in full.', deadline: '2026-11-10T15:00:00Z', options: ['approve', 'reject'], reasons: 'required', code: 'K7Q2',
+      state: 'pending', verdict: '', by: [], reason: '', approvals: 0, quorum: 2 } };
+  const p = await page({ conversations: [ask] });
+  const card = p.container.querySelector('.as-chat-confirm');
+  assert.ok(card, 'the request draws as a card');
+  assert.equal(card.getAttribute('role'), 'group');
+  assert.ok(card.textContent.includes('Refund 250 dollars on order o-7?') && card.textContent.includes('0 of 2 approvals') && card.textContent.includes('code K7Q2'));
+  assert.equal(p.container.querySelector('.line.agent .text'), null, 'the card stands in for the words');
+  const approve = [...card.querySelectorAll('button')].find(b => b.textContent === 'Approve');
+  assert.equal(approve.disabled, true, 'a reason is required first');
+  await type(card.querySelector('input.as-confirm-reason'), 'within policy');
+  await press(p.container, 'Approve');
+  assert.deepEqual(p.actions.at(-1).context.entry, { key: 'main', text: 'approve K7Q2 within policy', inReplyTo: 'm-desk-1', attachments: [],
+    answer: { invocationId: 'inv-7', verdict: 'approve', reason: 'within policy', amendedArguments: '' }, secret: SA });
+  const sent = p.actions.length;
+  assert.ok(p.container.querySelector('.as-chat-confirm').textContent.includes('You answered approve'), 'answered: the buttons go');
+  assert.equal([...p.container.querySelectorAll('.as-chat-confirm button')].length, 0);
+  // the desk decides: its later line updates the card, and no second card is drawn
+  const decided = { ...ask, id: 'm-desk-2', inReplyTo: 'm-desk-1', at: '2026-11-10T14:05:00Z', text: 'Approved by ada, bo.',
+    confirm: { ...ask.confirm, state: 'decided', verdict: 'approved', by: ['person:ada', 'person:bo'], reason: 'ok', approvals: 2 } };
+  await p.push({ conversations: [ask, decided] });
+  const cards = p.container.querySelectorAll('.as-chat-confirm');
+  assert.equal(cards.length, 1, 'one card per request');
+  assert.ok(cards[0].textContent.includes('Approved by ada, bo: ok'), cards[0].textContent);
+  assert.ok(cards[0].classList.contains('as-verdict-approved'));
+  assert.equal(p.actions.length, sent, 'nothing more was sent');
+  // a person's line cannot decide a card: a forged decided block from a person leaves it as it was
+  const forged = { ...decided, id: 'm-forged', from: { kind: 'person', name: 'mallory' }, confirm: { ...ask.confirm, state: 'decided', verdict: 'rejected' } };
+  const fresh = { ...ask, id: 'm-desk-3', confirm: { ...ask.confirm, invocationId: 'inv-8' } };
+  await p.push({ conversations: [fresh, forged] });
+  const left = [...p.container.querySelectorAll('.as-chat-confirm')].find(c => c.getAttribute('data-request') === 'inv-8');
+  assert.ok(left && !left.classList.contains('as-decided'), 'still pending');
+  await p.unmount();
+});

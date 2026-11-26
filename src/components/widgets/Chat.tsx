@@ -19,11 +19,17 @@
 // The visitor's secret rides with a sent line only through the page's write action ("write"), which the feed takes as
 // the proof of the visitor's thread; a design that names another writeAction never carries it into an action.
 // ChatInput and Conversation draw through this component (aliases through 0.6.x).
+//
+// A line with a confirm block (ChatMessage version 3, SPEC §6.1a.7) draws as a request card in its bubble: the
+// question, what it does, the desk and the deadline in the viewer's zone, the approvals so far, a reason box, and a
+// button per verdict the desk offers. A press sends the person's line through the same write, its text the reply in
+// words ("approve K7Q2 within policy") and its answer block naming the request; the feed proves the person, the desk
+// decides. Once the desk writes the decision, every copy of the card shows the outcome and its buttons go.
 import { useEffect, useRef, useState, type DragEvent, type ReactNode } from 'react';
 import { define, useRows, type Ctx } from '../../renderer/implementation';
 import type { ChatProps } from '../../generated/props';
 import { Markdown } from '../../viz/Markdown';
-import { chatDigest, chatOrder, chatSecret, chatThread, chatTime, chatWhen, lineState, progressWords, stepsOf, type ChatLine, type Progress } from '../../chat/thread';
+import { chatDigest, chatOrder, chatSecret, chatThread, chatTime, chatWhen, confirmNow, confirmOf, lineState, progressWords, stepsOf, verdictWords, type ChatLine, type ConfirmBlock, type Progress } from '../../chat/thread';
 import { onAttach, previewPath } from '../../chat/links';
 import { chipsOf, suggestionsPath } from '../../chat/followups';
 
@@ -72,6 +78,56 @@ const seenWorking = new Map<string, Set<string>>();
  */
 const feedbackGiven = new Map<string, 'up' | 'down'>();
 
+/** The requests a person answered on this page, by surface/component/request, so a redraw keeps the card as answered. */
+const answered = new Map<string, string>();
+
+/** The words of a verdict's button. */
+const VERB: Record<string, string> = { approve: 'Approve', reject: 'Reject', amend: 'Amend' };
+
+/**
+ * A desk's request in a bubble (SPEC §6.1a.7): what is asked, by when, and the buttons, or the outcome once decided. The
+ * reason box is required when the desk says so; a press is sent once.
+ */
+function ConfirmCard({ c, done, onAnswer }: { c: ConfirmBlock; done: string | undefined; onAnswer: (verdict: string, reason: string) => void }) {
+  const [reason, setReason] = useState('');
+  const deadline = c.deadline ? new Date(c.deadline) : undefined;
+  const late = deadline && !Number.isNaN(deadline.getTime()) ? deadline : undefined;
+  const decided = c.state === 'decided';
+  const needs = c.reasons === 'required' && !reason.trim();
+  const label = 'Request: ' + c.question;
+  return (
+    <div className={'as-chat-confirm' + (decided ? ' as-decided as-verdict-' + c.verdict : '')} role="group" aria-label={label} data-request={c.invocationId}>
+      <div className="as-confirm-question"><b>{c.question}</b></div>
+      {c.summary ? <div className="as-confirm-summary">{c.summary}</div> : null}
+      <div className="bma-muted bma-small as-confirm-meta">
+        {c.action ? <span className="as-confirm-action">{c.action}</span> : null}
+        {c.desk ? <span> · {c.desk}</span> : null}
+        {late && !decided ? <span> · until <time dateTime={late.toISOString()} title={late.toLocaleString()}>{chatTime({ at: c.deadline })}</time></span> : null}
+        {c.quorum > 1 ? <span className="as-confirm-votes"> · {c.approvals} of {c.quorum} approvals</span> : null}
+        {c.code ? <span> · code {c.code}</span> : null}
+      </div>
+      {decided ? (
+        <div className="as-confirm-outcome" role="status">
+          {verdictWords(c)}{c.by.length ? ' by ' + c.by.map(b => b.replace(/^person:/, '')).join(', ') : ''}{c.reason ? ': ' + c.reason : ''}
+        </div>
+      ) : done ? (
+        <div className="as-confirm-outcome" role="status">You answered {done}; waiting for the desk.</div>
+      ) : (
+        <div className="as-confirm-act">
+          {c.reasons !== 'none' ? (
+            <input className="as-confirm-reason" value={reason} onChange={e => setReason(e.target.value)} maxLength={2000}
+              aria-label={c.reasons === 'required' ? 'Reason (required)' : 'Reason (optional)'} placeholder={c.reasons === 'required' ? 'Reason (required)' : 'Reason (optional)'} />
+          ) : null}
+          {c.options.map(o => (
+            <button key={o} type="button" className={'bma-btn' + (o === 'approve' ? ' primary' : '')} disabled={needs}
+              onClick={() => onAnswer(o, reason.trim())}>{VERB[o] ?? o}</button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** The thumbs of the feedback control, inline SVG in currentColor, so a theme colours them and no icon font loads. */
 function Thumb({ down }: { down?: boolean }) {
   return (
@@ -114,6 +170,11 @@ export function ChatView({ o, ctx }: { o: ChatOptions; ctx: Ctx }) {
   const max = typeof o.max === 'number' && o.max > 0 ? Math.min(1000, o.max) : 100;
   const all = useRows<ChatLine>(ctx, o.reads ?? '/conversations');
   const lines = chatOrder(chatThread(all, key, me)).slice(-max);
+  const firstAsk = new Map<string, ChatLine>();
+  for (const l of lines) {
+    const c = l.from?.kind === 'agent' ? confirmOf(l) : undefined;
+    if (c && !firstAsk.has(c.invocationId)) firstAsk.set(c.invocationId, l);
+  }
   const progress = useRows<Progress>(ctx, o.progress ?? '/progress');
   const files = useRows<FileRow>(ctx, o.files ?? '/files');
   const [text, setText] = useState(() => drafts.get(id) ?? '');
@@ -123,6 +184,7 @@ export function ChatView({ o, ctx }: { o: ChatOptions; ctx: Ctx }) {
   // the newest line when the person last sent: its follow-ups hide at once, before the person's line comes back
   const [repliedTo, setRepliedTo] = useState('');
   const [, setFeedback] = useState(0);
+  const [, setAnswered] = useState(0);
   const log = useRef<HTMLDivElement>(null);
   const controls = new Set((Array.isArray(o.controls) ? o.controls : []).map(String));
   const writeAction = typeof o.writeAction === 'string' && o.writeAction ? o.writeAction : PAGE_WRITE;
@@ -139,11 +201,11 @@ export function ChatView({ o, ctx }: { o: ChatOptions; ctx: Ctx }) {
     const path = previewPath(ctx.component(o.preview));
     if (path) ctx.set(path, fileId);
   };
-  const send = (words: string, inReplyTo = '', attachments: string[] = pending) => {
+  const send = (words: string, inReplyTo = '', attachments: string[] = pending, extra: Record<string, unknown> = {}) => {
     const t = words.trim();
     if (!t) return;
     setRepliedTo(String(lines.at(-1)?.id ?? ''));
-    const entry: Record<string, unknown> = { key, text: t, inReplyTo, attachments };
+    const entry: Record<string, unknown> = { key, text: t, inReplyTo, attachments, ...extra };
     if (writeAction === PAGE_WRITE) entry.secret = secret;   // the secret goes to the feed's write alone
     ctx.dispatch(writeAction, { type: 'ChatMessage', entry });
   };
@@ -205,6 +267,9 @@ export function ChatView({ o, ctx }: { o: ChatOptions; ctx: Ctx }) {
       <div className="log" ref={log} role="log" aria-live="polite" aria-label={agent ? `Chat with ${agent}` : 'Chat'}>
         {lines.length ? lines.map((l, i) => {
           const lineId = String(l.id ?? '');
+          // a desk's later line for a request it already showed (its decision) updates that card rather than adding one
+          const ask = l.from?.kind === 'agent' ? confirmOf(l) : undefined;
+          if (ask && firstAsk.get(ask.invocationId) !== l) return null;
           const kind = l.from?.kind === 'agent' ? 'agent' : 'person';
           const ms = chatWhen(l); const when = Number.isNaN(ms) ? undefined : new Date(ms);
           const who = kind === 'person' && (!l.from?.name || l.key === mine) ? 'you' : String(l.from?.name || kind);
@@ -216,11 +281,23 @@ export function ChatView({ o, ctx }: { o: ChatOptions; ctx: Ctx }) {
           const state = kind === 'person' ? lineState(l, all, p, seen.has(lineId)) : 'answered';
           const steps = stepsOf(p);
           const question = kind === 'agent' ? all.find(q => String(q.id ?? '') === String(l.inReplyTo ?? '')) : undefined;
+          const request = kind === 'agent' ? confirmNow(l, all) : undefined;
+          const answer = (verdict: string, reason: string) => {
+            if (!request) return;
+            const at = id + '/' + request.invocationId;
+            if (answered.has(at)) return;
+            answered.set(at, verdict);
+            setAnswered(n => n + 1);
+            // the line in words as well, so a desk or a reader that knows no answer block still reads the reply
+            send([verdict, request.code, reason].filter(Boolean).join(' '), lineId, [],
+              { answer: { invocationId: request.invocationId, verdict, reason, amendedArguments: '' } });
+          };
           return (
             <div key={lineId || i} className={`line ${kind}`} data-line={lineId}>
               <div className="bubble">
                 <div className="meta"><b>{who}</b> <time className="bma-muted bma-small" dateTime={when?.toISOString()} title={when?.toLocaleString()}>{chatTime(l)}</time></div>
-                <div className="text">{markdown ? <Markdown markdown={String(l.text ?? '')} copy /> : <PlainText text={String(l.text ?? '')} />}</div>
+                {request ? <ConfirmCard c={request} done={answered.get(id + '/' + request.invocationId)} onAnswer={answer} />
+                  : <div className="text">{markdown ? <Markdown markdown={String(l.text ?? '')} copy /> : <PlainText text={String(l.text ?? '')} />}</div>}
                 {attachments.length ? <div className="as-chat-chips">{attachments.map(a => chip(a, nameOf(a), 'attachment'))}</div> : null}
                 {cites.length ? <div className="as-chat-chips"><span className="bma-muted bma-small">Sources:</span> {cites.map(c => chip(String(c.file ?? ''), c.name || nameOf(String(c.file ?? ''), c.path), 'cite'))}</div> : null}
                 {kind === 'agent' && extras.length ? <div className="as-chat-extras">{extras.map((x, k) => <span key={k}>{x(l, ctx)}</span>)}</div> : null}

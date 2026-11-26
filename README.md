@@ -10,7 +10,7 @@ A page hands `Surfaces` the envelopes an agent wrote, in order, and receives eac
 
 ```bash
 npm init -y
-npm install @agentspaces/a2ui-react@0.6.0 react react-dom @a2ui/react@0.15.0 @a2ui/web_core@0.15.0 markdown-it@14 zod@3 esbuild
+npm install @agentspaces/a2ui-react@0.7.0 react react-dom @a2ui/react@0.16.1 @a2ui/web_core@0.16.1 markdown-it@14 zod@3 esbuild
 ```
 
 **2. Write the page** as `page.js`:
@@ -69,10 +69,10 @@ npx esbuild page.js --bundle --format=esm --splitting --outdir=out --external:ma
 ## Add it to your build
 
 ```bash
-npm install @agentspaces/a2ui-react@0.6.0
+npm install @agentspaces/a2ui-react@0.7.0
 ```
 
-The peers are React 18 or 19, `@a2ui/react` and `@a2ui/web_core` 0.15.0, `markdown-it` 14, and `zod` 3. A page with a `Map` or a `GeoMap` adds `maplibre-gl` 6 and the four `@deck.gl` 9 packages. A `GraphView` past 500 nodes draws with `@deck.gl/core` and `@deck.gl/layers`, and draws SVG where they are missing. A page without them marks them external, as the quick start does. [About the renderer](docs/about.md) lists what it draws and what it leaves to a host, and [Building](docs/building.md) builds from a clone.
+The peers are React 18 or 19, `@a2ui/react` and `@a2ui/web_core` 0.16.1, `markdown-it` 14, and `zod` 3. A page with a `Map` or a `GeoMap` adds `maplibre-gl` 6 and the four `@deck.gl` 9 packages. A `GraphView` past 500 nodes draws with `@deck.gl/core` and `@deck.gl/layers`, and draws SVG where they are missing. A page without them marks them external, as the quick start does. [About the renderer](docs/about.md) lists what it draws and what it leaves to a host, and [Building](docs/building.md) builds from a clone.
 
 ## Where to read next
 

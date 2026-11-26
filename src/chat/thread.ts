@@ -7,10 +7,66 @@
 // and the progress of a line from its ChatProgress in the A2A task words. Plain functions, no React,
 // so a page, a custom element and a test share them.
 
-/** A chat line as a page reads it: the ChatMessage fields (version 1 or 2), and the `_at` a feed's row adds. */
+/** A chat line as a page reads it: the ChatMessage fields (versions 1 to 3), and the `_at` a feed's row adds. */
 export interface ChatLine {
   id?: unknown; key?: unknown; from?: { kind?: unknown; name?: unknown }; text?: unknown; attachments?: unknown; inReplyTo?: unknown;
-  at?: unknown; _at?: unknown; format?: unknown; cites?: unknown;
+  at?: unknown; _at?: unknown; format?: unknown; cites?: unknown; confirm?: unknown; answer?: unknown;
+}
+
+/** A desk's request as a line carries it (ChatMessage version 3, SPEC §6.1a.7), read loosely: a page draws what it gets. */
+export interface ConfirmBlock {
+  invocationId: string; desk: string; kind: string; question: string; action: string; arguments: string; summary: string; deadline: string;
+  options: string[]; reasons: string; code: string; state: string; verdict: string; by: string[]; reason: string; approvals: number; quorum: number;
+}
+
+const text = (v: unknown) => (typeof v === 'string' ? v : v === undefined || v === null ? '' : String(v));
+
+/** A line's confirm block, or undefined when it carries none (or one without its request and question). */
+export function confirmOf(m: ChatLine | undefined): ConfirmBlock | undefined {
+  const c = m?.confirm;
+  if (!c || typeof c !== 'object') return undefined;
+  const o = c as Record<string, unknown>;
+  if (!text(o.invocationId) || !text(o.question)) return undefined;
+  const list = (v: unknown) => (Array.isArray(v) ? v.map(text) : []);
+  const options = list(o.options).filter(x => x === 'approve' || x === 'reject' || x === 'amend');
+  return {
+    invocationId: text(o.invocationId), desk: text(o.desk), kind: text(o.kind) || 'approval', question: text(o.question), action: text(o.action),
+    arguments: text(o.arguments), summary: text(o.summary), deadline: text(o.deadline), options: options.length ? options : ['approve', 'reject'],
+    reasons: text(o.reasons) || 'optional', code: text(o.code), state: text(o.state) === 'decided' ? 'decided' : 'pending', verdict: text(o.verdict),
+    by: list(o.by), reason: text(o.reason), approvals: Number(o.approvals) || 0, quorum: Math.max(1, Number(o.quorum) || 1),
+  };
+}
+
+/**
+ * A request as the thread knows it now: a decided block for the same request wins over a pending one, then the later
+ * line; so when the desk writes the decision, every copy of the card shows the outcome (SPEC §6.1a.7). Only the
+ * lines of the same author as the request's own count, so a person's line cannot decide a card.
+ */
+export function confirmNow(line: ChatLine, all: readonly ChatLine[]): ConfirmBlock | undefined {
+  const mine = confirmOf(line);
+  if (!mine) return undefined;
+  let best = mine; let bestAt = chatWhen(line);
+  for (const m of all) {
+    if (m === line || m.from?.kind !== line.from?.kind || text(m.from?.name) !== text(line.from?.name)) continue;
+    const c = confirmOf(m);
+    if (!c || c.invocationId !== mine.invocationId) continue;
+    const at = chatWhen(m);
+    const rank = (b: ConfirmBlock) => (b.state === 'decided' ? 1 : 0);
+    if (rank(c) > rank(best) || rank(c) === rank(best) && at > bestAt) { best = c; bestAt = at; }
+  }
+  return best;
+}
+
+/** The words of a decided request's verdict. */
+export function verdictWords(c: ConfirmBlock): string {
+  switch (c.verdict) {
+    case 'approved': return 'Approved';
+    case 'rejected': return 'Rejected';
+    case 'amended': return 'Approved with changes';
+    case 'expired': return 'Expired: no decision in time';
+    case 'cancelled': return 'Withdrawn by the agent';
+    default: return 'Decided';
+  }
 }
 
 /** When a line was written, in milliseconds: its `at` (an ISO string, or the epoch seconds a feed's row carries), else `_at`; NaN when neither reads. */

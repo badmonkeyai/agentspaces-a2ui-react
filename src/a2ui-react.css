@@ -342,6 +342,13 @@
 .as-chat-feedback { display: inline-flex; gap: 4px; }
 .as-chat-controls .as-chat-thumb { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; padding: 0 6px; }
 .as-thumb { display: block; }
+/* SPEC §6.1a.7: a desk's request in a bubble, and its outcome once decided */
+.as-chat-confirm { display: grid; gap: 6px; border: 1px solid var(--bma-color-border, #d0d4da); border-left: 3px solid var(--bma-color-accent); border-radius: 6px; padding: 8px 10px; background: var(--bma-color-surface, transparent); }
+.as-chat-confirm .as-confirm-meta span + span { margin-left: 2px; }
+.as-chat-confirm .as-confirm-act { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.as-chat-confirm .as-confirm-reason { flex: 1 1 160px; min-width: 0; font: inherit; padding: 4px 6px; }
+.as-chat-confirm .as-confirm-outcome { font-weight: 600; }
+.as-chat-confirm.as-verdict-rejected, .as-chat-confirm.as-verdict-expired, .as-chat-confirm.as-verdict-cancelled { border-left-color: var(--bma-color-ink-muted); }
 .as-chat-progress { display: flex; flex-wrap: wrap; gap: var(--bma-space-s); align-items: center; font-size: var(--bma-font-s); color: var(--bma-color-ink-muted); margin-top: 4px; }
 .as-chat-progress.as-state-stopped, .as-chat-progress.as-state-failed { color: var(--bma-color-ink); border-left: 2px solid var(--bma-color-critical); padding-left: 8px; }
 .as-chat-progress ol { margin: 4px 0 0; padding-left: 18px; }

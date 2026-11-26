@@ -6,7 +6,7 @@ The package is scoped, and npm makes a scoped package private unless it is told 
 
 ## Order
 
-Release [agentspaces-a2ui](https://github.com/badmonkeyai/agentspaces-a2ui) 0.6.0 first, from the commit whose catalogs this package's `src/generated/` matches. The package needs no Maven artifact at run time, but it draws that release's catalogs, so the two releases name the same catalogs.
+Release [agentspaces-a2ui](https://github.com/badmonkeyai/agentspaces-a2ui) 0.7.0 first, from the commit whose catalogs this package's `src/generated/` matches. The package needs no Maven artifact at run time, but it draws that release's catalogs, so the two releases name the same catalogs.
 
 ## The dry run
 
@@ -22,7 +22,7 @@ The list holds `dist/`, `src/`, `README.md`, `CHANGELOG.md`, `LICENSE`, `NOTICE`
 
 ```sh
 npm publish --otp=<code>
-npm view @agentspaces/a2ui-react@0.6.0 version
+npm view @agentspaces/a2ui-react@0.7.0 version
 ```
 
-`prepublishOnly` removes `dist/`, rebuilds it, and runs the tests, so the tarball never carries a stale chunk. npm does not let a version be replaced, so a bad release is fixed by the next version. Tag the release commit with the bare version (`0.6.0`) and push the tag.
+`prepublishOnly` removes `dist/`, rebuilds it, and runs the tests, so the tarball never carries a stale chunk. npm does not let a version be replaced, so a bad release is fixed by the next version. Tag the release commit with the bare version (`0.7.0`) and push the tag.
